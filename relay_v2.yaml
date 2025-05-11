@@ -12,7 +12,7 @@ globals:
      type: std::string
      restore_value: yes
      max_restore_data_length: 24
-     initial_value: '"Version 1.9"'
+     initial_value: '"2.0"'
 
    - id: board_no
      type: std::string
@@ -87,6 +87,7 @@ sensor:
 
   - platform: uptime
     name: '${devicename} uptime'
+    id: device_uptime
     unit_of_measurement: days
     update_interval: 300s
     accuracy_decimals: 1
@@ -170,6 +171,21 @@ display:
           it.printf(125, 27, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(esp_ssid).state.c_str());
           it.printf(4, 39, id(my_font), TextAlign::BASELINE_LEFT, "IP");
           it.printf(125, 39, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(esp_ip).state.c_str());
+          it.printf(4, 51, id(my_font), TextAlign::BASELINE_LEFT, "Board:");
+          it.printf(125, 51, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(board_no).c_str());
+          it.printf(4, 63, id(my_font), TextAlign::BASELINE_LEFT, "Signal:");
+          it.printf(125, 63, id(my_font), TextAlign::BASELINE_RIGHT, "%.2f", id(wifi_signal_prc).state);
+
+      - id: page1a
+        lambda: |-
+          // Write your display rendering code here
+          it.rectangle (1,1,126,62);
+          it.rectangle(1, 1, 126, 15);
+          it.printf(64,10, id(my_font), TextAlign::BASELINE_CENTER, "Information");
+          it.printf(4, 27, id(my_font), TextAlign::BASELINE_LEFT, "Uptime:");
+          it.printf(125, 27, id(my_font), TextAlign::BASELINE_RIGHT, "%.1f", id(device_uptime).state);
+          it.printf(4, 39, id(my_font), TextAlign::BASELINE_LEFT, "Version:");
+          it.printf(125, 39, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(relay_board_firmware).state.c_str());
           it.printf(4, 51, id(my_font), TextAlign::BASELINE_LEFT, "Board:");
           it.printf(125, 51, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(board_no).c_str());
           it.printf(4, 63, id(my_font), TextAlign::BASELINE_LEFT, "Signal:");
@@ -282,12 +298,14 @@ script:
   - id: print_info
     then:
       - display.page.show: page2      
-      - delay: 10s
+      - delay: ${countdown_time}
       - display.page.show: page3
   - id: print_device
     then:
       - display.page.show: page1      
-      - delay: 10s
+      - delay: ${countdown_time}
+      - display.page.show: page1a
+      - delay: ${countdown_time}
       - display.page.show: page3  
   - id: display_info
     then: 
