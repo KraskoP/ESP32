@@ -1,0 +1,565 @@
+substitutions:
+  devicename: relay-board
+  countdown_time: 10s
+
+globals:
+   - id: my_global_int
+     type: int
+     restore_value: no
+     initial_value: '0'
+   # Example for global string variable
+   - id: my_version
+     type: std::string
+     restore_value: yes
+     max_restore_data_length: 24
+     initial_value: '"Version 1.9"'
+
+   - id: board_no
+     type: std::string
+     restore_value: yes
+     max_restore_data_length: 24
+     initial_value: '"1"'
+
+esphome:
+  name: ${devicename}
+  friendly_name: "Relay board"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "uykUqYA1dAvS/FBXd2DbCjlU1HevArnj3BO0nyue6ak="
+
+ota:
+  - platform: esphome
+    password: !secret ota_pass
+    id: my_ota
+
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: ${devicename} "Fallback Hotspot"
+    password: "iYZ1o8BoaAzV"
+
+captive_portal:
+
+
+web_server:
+  port: 80
+  auth:
+    username: !secret webuser
+    password: !secret webpw  
+
+time:
+  - platform: ds1307
+    id: ds1307_time
+    on_time_sync:
+      - ds1307.read_time:
+          id: ds1307_time    
+# DS18B20 TEMPERATURE SENSOR DETECT
+one_wire:
+  - platform: gpio
+    pin: GPIO32
+    id: hub_1
+  - platform: gpio
+    pin: GPIO33
+    id: hub_2
+
+sensor:
+
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: ${devicename} WiFi Signal dB
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: uptime
+    name: '${devicename} uptime'
+    unit_of_measurement: days
+    update_interval: 300s
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.000011574
+
+  - platform: copy # Reports the WiFi signal strength in %
+    source_id: wifi_signal_db
+    name: ${devicename} WiFi Signal %
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: " %"
+    entity_category: "diagnostic"
+    id: wifi_signal_prc
+
+  - platform: adc
+    pin: GPIO36
+    name: "Analog_01"
+    id: 'shconfig'
+    raw: true
+    attenuation: 12db
+    filters:
+      - multiply: 0.001221
+    update_interval: 3s
+    on_value_range:
+      - above: 2.0
+        then:
+          - display.page.show: page1
+          - delay: 10s
+          - display.page.show: page2
+          - delay: 10s
+          - display.page.show: page3
+  
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+      id: esp_ip
+      icon: "mdi:information-box"
+    ssid:
+      name: WIFI SSID
+      id: esp_ssid
+      icon: "mdi:information-box"
+    mac_address:
+      name: MAC Address
+      id: esp_mac
+      icon: "mdi:information-box"
+      
+
+  - platform: template
+    name: ${devicename} firmware version
+    id: relay_board_firmware
+    icon: "mdi:information-box"
+    entity_category: "diagnostic"
+    lambda: |-
+      return { id(my_version).c_str() };       
+ 
+#I2C bus define
+i2c:
+  sda: 4
+  scl: 15
+  scan: true
+  id: bus_a
+
+font:
+  - file: "gfonts://Roboto"
+    id: my_font
+    size: 11
+    bpp: 2
+
+display:
+  - platform: ssd1306_i2c
+    model: "SH1106 128x64"
+    id: oled_display
+    address: 0x3C
+    
+    pages:
+      - id: page1
+        lambda: |-
+          // Write your display rendering code here
+          it.rectangle (1,1,126,62);
+          it.rectangle(1, 1, 126, 15);
+          it.printf(64,10, id(my_font), TextAlign::BASELINE_CENTER, "Network");
+          it.printf(4, 27, id(my_font), TextAlign::BASELINE_LEFT, "SSID:");
+          it.printf(125, 27, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(esp_ssid).state.c_str());
+          it.printf(4, 39, id(my_font), TextAlign::BASELINE_LEFT, "IP");
+          it.printf(125, 39, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(esp_ip).state.c_str());
+          it.printf(4, 51, id(my_font), TextAlign::BASELINE_LEFT, "Board:");
+          it.printf(125, 51, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(board_no).c_str());
+          it.printf(4, 63, id(my_font), TextAlign::BASELINE_LEFT, "Signal:");
+          it.printf(125, 63, id(my_font), TextAlign::BASELINE_RIGHT, "%.2f", id(wifi_signal_prc).state);
+
+
+      - id: page2
+        lambda: |-
+          // Write your display rendering code here
+
+          it.print(2, 0,  id(my_font), "INPUT:");
+
+          if (id(input01).state)
+          { it.filled_rectangle(2,12,19,18);
+          }
+          else 
+          { it.rectangle(2,12,19,18);
+          }
+
+          if (id(input02).state)
+          { it.filled_rectangle(23,12,19,18);
+          }
+          else 
+          { it.rectangle(23,12,19,18);
+          }
+
+          if (id(input03).state)
+          { it.filled_rectangle(44,12,19,18);
+          }
+          else 
+          { it.rectangle(44,12,19,18);
+          }
+
+          if (id(input04).state)
+          { it.filled_rectangle(65,12,19,18);
+          }
+          else 
+          { it.rectangle(65,12,19,18);
+          }
+
+          if (id(input05).state)
+          { it.filled_rectangle(86,12,19,18);
+          }
+          else 
+          { it.rectangle(86,12,19,18);
+          }
+
+
+          if (id(input06).state)
+          { it.filled_rectangle(107,12,19,18);
+          }
+          else 
+          { it.rectangle(107,12,19,18);
+          }
+
+          // Bootom part of the screen      
+          it.print(2, 32,  id(my_font), "OUTPUT:");
+          
+          if (id(relay01).state)
+          { it.filled_rectangle(2,44,19,18);
+          }
+          else 
+          { it.rectangle(2,44,19,18);
+          }
+
+          if (id(relay02).state)
+          { it.filled_rectangle(23,44,19,18);
+          }
+          else 
+          { it.rectangle(23,44,19,18);
+          }
+
+          if (id(relay03).state)
+          { it.filled_rectangle(44,44,19,18);
+          }
+          else 
+          { it.rectangle(44,44,19,18);
+          }
+
+          if (id(relay04).state)
+          { it.filled_rectangle(65,44,19,18);
+          }
+          else 
+          { it.rectangle(65,44,19,18);
+          }
+
+          if (id(relay05).state)
+          { it.filled_rectangle(86,44,19,18);
+          }
+          else 
+          { it.rectangle(86,44,19,18);
+          }
+
+
+          if (id(relay06).state)
+          { it.filled_rectangle(107,44,19,18);
+          }
+          else 
+          { it.rectangle(107,44,19,18);
+          }
+
+      - id: page3
+        lambda: |-
+          // this will be a black display 
+
+          it.print(2, 0,  id(my_font), " ");
+
+
+script:
+  - id: show_info
+    then:
+      - display.page.show: page2      
+      - delay: 10s
+      - display.page.show: page3
+  - id: show_device
+    then:
+      - display.page.show: page1      
+      - delay: 10s
+      - display.page.show: page3  
+  - id: 
+
+  - id: countdown
+    then:
+    - delay: ${countdown_time}  # timer length
+    - script.execute: slow_flashing
+    - while:
+        condition:
+          script.is_running: slow_flashing
+        then:
+          - light.turn_off: buttonlight
+          - delay: 3s
+          - light.turn_on: buttonlight
+          - delay: 3s
+    - script.execute: fast_flashing
+    - while:
+        condition:
+          script.is_running: fast_flashing
+        then:
+          - light.turn_off: buttonlight
+          - delay: 3s
+          - light.turn_on: buttonlight
+          - delay: 3s
+    - switch.turn_off: relay
+    - light.turn_off: buttonlight
+  - id: slow_flashing
+    then:
+    - delay: "${slow_flashing_time}"
+  - id: fast_flashing
+    then:
+    - delay: "${slow_flashing_time}"
+
+
+
+pcf8574:
+    # relay output control
+  - id: 'pcf8574_hub_out_1'  
+    address: 0x24
+    # digital input 
+  - id: 'pcf8574_hub_in_1'  
+    address: 0x22  
+
+switch:
+  - platform: gpio
+    name: "relay1"
+    id: 'relay01'
+    pin:
+      pcf8574: pcf8574_hub_out_1
+      # set pin number
+      number: 0
+      # set pinMode
+      mode: OUTPUT
+      inverted: true
+    on_turn_off:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_turn_on: 
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+  - platform: gpio
+    name: "relay2"
+    id: 'relay02'
+    pin:
+      pcf8574: pcf8574_hub_out_1
+      number: 1
+      mode: OUTPUT
+      inverted: true
+    on_turn_off:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+    on_turn_on: 
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+  - platform: gpio
+    name: "relay3"
+    id: 'relay03'
+    pin:
+      pcf8574: pcf8574_hub_out_1
+      number: 2
+      mode: OUTPUT
+      inverted: true
+    on_turn_off:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_turn_on: 
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+  - platform: gpio
+    name: "relay4"
+    id: 'relay04'
+    pin:
+      pcf8574: pcf8574_hub_out_1
+      number: 3
+      mode: OUTPUT
+      inverted: true
+    on_turn_off:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_turn_on: 
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+      
+  - platform: gpio
+    name: "relay5"
+    id: 'relay05'
+    pin:
+      pcf8574: pcf8574_hub_out_1
+      number: 4
+      mode: OUTPUT
+      inverted: true
+    on_turn_off:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_turn_on: 
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+      
+  - platform: gpio
+    name: "relay6"
+    id: 'relay06'
+    pin:
+      pcf8574: pcf8574_hub_out_1
+      number: 5
+      mode: OUTPUT
+      inverted: true
+    on_turn_off:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_turn_on: 
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+#6 digital input detect
+binary_sensor:
+
+  - platform: status
+    name: ${devicename} Status
+    id: esp_status
+
+  - platform: gpio
+    name: "INPUT_01"
+    id: 'input01'
+    pin:
+      pcf8574: pcf8574_hub_in_1
+      number: 0
+      mode: input
+      inverted: true
+    on_press:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_release:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+ 
+
+  - platform: gpio
+    name: "INPUT_02"
+    id: 'input02'
+    pin:
+      pcf8574: pcf8574_hub_in_1
+      number: 1
+      mode: input
+      inverted: true
+    on_press:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_release:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+  - platform: gpio
+    name: "INPUT_03"
+    id: 'input03'
+    pin:
+      pcf8574: pcf8574_hub_in_1
+      number: 2
+      mode: input
+      inverted: true
+    on_press:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_release:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+  - platform: gpio
+    name: "INPUT_04"
+    id: 'input04'
+    pin:
+      pcf8574: pcf8574_hub_in_1
+      number: 3
+      mode: input
+      inverted: true
+  - platform: gpio
+    name: "INPUT_05"
+    id: 'input05'
+    pin:
+      pcf8574: pcf8574_hub_in_1
+      number: 4
+      mode: input
+      inverted: true
+    on_press:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_release:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+
+  - platform: gpio
+    name: "INPUT_06"
+    id: 'input06'
+    pin:
+      pcf8574: pcf8574_hub_in_1
+      number: 5
+      mode: input
+      inverted: true
+    on_press:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3
+    on_release:
+      then:
+        - display.page.show: page2      
+        - delay: 10s
+        - display.page.show: page3

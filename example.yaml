@@ -1,0 +1,162 @@
+substitutions:
+  device_name: raclette-w-temp
+  
+  
+  slow_flashing_time: 3min
+  fast_flashing_time: 1min
+
+esphome:
+  name: ${device_name}
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: !secret wifissid
+  password: !secret wifipw
+  reboot_timeout: 60min
+  manual_ip:
+    static_ip: 10.11.13.100
+    gateway: 10.11.13.1
+    subnet: 255.255.255.0
+  fast_connect: true
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${device_name} Hotspot"
+    password: !secret appw
+
+# Enable Home Assistant API
+api:
+  password: !secret apipw
+
+ota:
+  password: !secret otapw
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+logger:
+  baud_rate: 0 #need this to free up UART pins
+
+web_server:
+  port: 80
+  auth:
+    username: !secret webuser
+    password: !secret webpw
+
+# Timer for auto turnoff
+script:
+  - id: countdown
+    then:
+    - delay: ${countdown_time}  # timer length
+    - script.execute: slow_flashing
+    - while:
+        condition:
+          script.is_running: slow_flashing
+        then:
+          - light.turn_off: buttonlight
+          - delay: 3s
+          - light.turn_on: buttonlight
+          - delay: 3s
+    - script.execute: fast_flashing
+    - while:
+        condition:
+          script.is_running: fast_flashing
+        then:
+          - light.turn_off: buttonlight
+          - delay: 3s
+          - light.turn_on: buttonlight
+          - delay: 3s
+    - switch.turn_off: relay
+    - light.turn_off: buttonlight
+  - id: slow_flashing
+    then:
+    - delay: "${slow_flashing_time}"
+  - id: fast_flashing
+    then:
+    - delay: "${slow_flashing_time}"
+
+spi:
+  miso_pin: D6
+  clk_pin: D5
+
+# Text Sensor with general information
+text_sensor:
+  - platform: version
+    name: '${device_name} ESPHome Version'
+  - platform: wifi_info
+    ip_address:
+      name: '${device_name} ip'
+    ssid:
+      name: '${device_name} ssid'
+
+sensor:
+  - platform: wifi_signal
+    name: '${device_name} wifi signal'
+    update_interval: 60s
+    accuracy_decimals: 0
+  - platform: uptime
+    name: '${device_name} uptime'
+    unit_of_measurement: days
+    update_interval: 300s
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.000011574
+  - platform: max6675
+    name: '${device_name} Temperature'
+    cs_pin: D8
+
+binary_sensor:
+  - platform: gpio
+    id: button
+    internal: true
+    pin:
+      number: D4
+      mode: INPUT_PULLUP
+      inverted: true
+    on_press:
+      - if:
+          condition:
+            switch.is_on: relay
+          then:
+            - if:
+                condition:
+                  or:
+                    - script.is_running: slow_flashing
+                    - script.is_running: fast_flashing
+                then:
+                  - logger.log: "Countdoun resat"
+                  - script.stop: countdown
+                  - script.stop: slow_flashing
+                  - script.stop: fast_flashing
+                  - light.turn_on: buttonlight
+                  - script.execute: countdown
+                else:
+                  - switch.turn_off: relay
+          else:
+            - switch.turn_on: relay
+    filters:
+      - delayed_off: 30ms
+
+output:
+  - platform: gpio
+    pin: D1
+    id: light_relay
+
+switch:
+  - platform: gpio
+    pin: D2
+    id: relay
+    name: '${device_name} relay'
+    on_turn_on:
+      - light.turn_on: buttonlight
+      - script.execute: countdown
+    on_turn_off:
+      - script.stop: countdown
+      - light.turn_off: buttonlight
+
+light:
+  - platform: binary
+    id: buttonlight
+    name: '${device_name} powerindicator'
+    output: light_relay
