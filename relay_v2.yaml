@@ -79,6 +79,16 @@ one_wire:
 
 sensor:
 
+  #2 Temperature sensor output
+  - platform: dallas
+    address: 0xbe012115dcbebc28
+    dallas_id: hub_1
+    name: "Temperature_01"
+  - platform: dallas
+    address: 0xc00358d443b5ae28
+    dallas_id: hub_2
+    name: "Temperature_02"
+
   - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
     name: ${devicename} WiFi Signal dB
     id: wifi_signal_db
