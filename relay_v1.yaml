@@ -1,5 +1,8 @@
+# Relay board located on attic
+
 substitutions:
   devicename: relay-board
+  countdown_time: 10s
 
 globals:
    - id: my_global_int
@@ -11,7 +14,7 @@ globals:
      type: std::string
      restore_value: yes
      max_restore_data_length: 24
-     initial_value: '"Version 1.9"'
+     initial_value: '"2.5"'
 
    - id: board_no
      type: std::string
@@ -21,7 +24,7 @@ globals:
 
 esphome:
   name: ${devicename}
-  friendly_name: "Relay board"
+  friendly_name: "Attic"
 
 esp32:
   board: esp32dev
@@ -57,6 +60,9 @@ captive_portal:
 
 web_server:
   port: 80
+#  auth:
+#    username: !secret webuser
+#    password: !secret webpw  
 
 time:
   - platform: ds1307
@@ -75,11 +81,31 @@ one_wire:
 
 sensor:
 
+  - platform: dallas_temp
+    address: 0xca000000375ded28
+    one_wire_id: hub_1
+    name: "Temp_01"
+    id: temp01
+  - platform: dallas_temp
+    address: 0x863c9af6495edc28
+    one_wire_id: hub_2
+    name: "Temp_02"
+    id: temp02
+
   - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
     name: ${devicename} WiFi Signal dB
     id: wifi_signal_db
     update_interval: 60s
     entity_category: "diagnostic"
+
+  - platform: uptime
+    name: '${devicename} uptime'
+    id: device_uptime
+    unit_of_measurement: days
+    update_interval: 300s
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.000011574
 
   - platform: copy # Reports the WiFi signal strength in %
     source_id: wifi_signal_db
@@ -102,11 +128,7 @@ sensor:
     on_value_range:
       - above: 2.0
         then:
-          - display.page.show: page1
-          - delay: 10s
-          - display.page.show: page2
-          - delay: 10s
-          - display.page.show: page3
+          - script.execute: display_device
   
 text_sensor:
   - platform: wifi_info
@@ -122,6 +144,7 @@ text_sensor:
       name: MAC Address
       id: esp_mac
       icon: "mdi:information-box"
+      
 
   - platform: template
     name: ${devicename} firmware version
@@ -165,6 +188,21 @@ display:
           it.printf(125, 51, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(board_no).c_str());
           it.printf(4, 63, id(my_font), TextAlign::BASELINE_LEFT, "Signal:");
           it.printf(125, 63, id(my_font), TextAlign::BASELINE_RIGHT, "%.2f", id(wifi_signal_prc).state);
+
+      - id: page1a
+        lambda: |-
+          // Write your display rendering code here
+          it.rectangle (1,1,126,62);
+          it.rectangle(1, 1, 126, 15);
+          it.printf(64,10, id(my_font), TextAlign::BASELINE_CENTER, "Information");
+          it.printf(4, 27, id(my_font), TextAlign::BASELINE_LEFT, "Uptime:");
+          it.printf(125, 27, id(my_font), TextAlign::BASELINE_RIGHT, "%.1f", id(device_uptime).state);
+          it.printf(4, 39, id(my_font), TextAlign::BASELINE_LEFT, "Version:");
+          it.printf(125, 39, id(my_font), TextAlign::BASELINE_RIGHT, "%s", id(relay_board_firmware).state.c_str());
+          it.printf(4, 51, id(my_font), TextAlign::BASELINE_LEFT, "Temp 1:");
+          it.printf(125, 51, id(my_font), TextAlign::BASELINE_RIGHT, "%.1f", id(temp01).state);
+          it.printf(4, 63, id(my_font), TextAlign::BASELINE_LEFT, "Temp 2:");
+          it.printf(125, 63, id(my_font), TextAlign::BASELINE_RIGHT, "%.1f", id(temp02).state);
 
 
       - id: page2
@@ -269,6 +307,48 @@ display:
           it.print(2, 0,  id(my_font), " ");
 
 
+script:
+  - id: print_info
+    then:
+      - display.page.show: page2      
+      - delay: ${countdown_time}
+      - display.page.show: page3
+  - id: print_device
+    then:
+      - display.page.show: page1      
+      - delay: ${countdown_time}
+      - display.page.show: page1a
+      - delay: ${countdown_time}
+      - display.page.show: page3  
+  - id: display_info
+    then: 
+      - if:
+         condition:
+          or: 
+           - script.is_running: print_info
+           - script.is_running: print_device
+         then:
+#          - logger.log: "Countdoun resat"
+           - script.stop: print_info
+           - script.stop: print_device
+           - script.execute: print_info
+         else:
+           - script.execute: print_info
+  - id: display_device
+    then: 
+      - if:
+         condition:
+          or: 
+           - script.is_running: print_info
+           - script.is_running: print_device
+         then:
+#          - logger.log: "Countdoun resat"
+           - script.stop: print_info
+           - script.stop: print_device
+           - script.execute: print_device
+         else:
+           - script.execute: print_device
+
 
 pcf8574:
     # relay output control
@@ -291,14 +371,10 @@ switch:
       inverted: true
     on_turn_off:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
     on_turn_on: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
 
   - platform: gpio
     name: "relay2"
@@ -310,15 +386,11 @@ switch:
       inverted: true
     on_turn_off:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
-
+        - script.execute: display_info      
     on_turn_on: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
+
 
   - platform: gpio
     name: "relay3"
@@ -330,14 +402,10 @@ switch:
       inverted: true
     on_turn_off:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
     on_turn_on: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
 
   - platform: gpio
     name: "relay4"
@@ -349,14 +417,11 @@ switch:
       inverted: true
     on_turn_off:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
     on_turn_on: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
+
       
   - platform: gpio
     name: "relay5"
@@ -368,14 +433,11 @@ switch:
       inverted: true
     on_turn_off:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
     on_turn_on: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
+
       
   - platform: gpio
     name: "relay6"
@@ -387,14 +449,11 @@ switch:
       inverted: true
     on_turn_off:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
     on_turn_on: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
+
 
 #6 digital input detect
 binary_sensor:
@@ -413,14 +472,11 @@ binary_sensor:
       inverted: true
     on_press:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
-    on_release:
+        - script.execute: display_info      
+    on_release: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info      
+
  
 
   - platform: gpio
@@ -433,14 +489,11 @@ binary_sensor:
       inverted: true
     on_press:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
-    on_release:
+        - script.execute: display_info      
+    on_release: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info       
+
 
   - platform: gpio
     name: "INPUT_03"
@@ -452,14 +505,11 @@ binary_sensor:
       inverted: true
     on_press:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
-    on_release:
+        - script.execute: display_info      
+    on_release: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info     
+
 
   - platform: gpio
     name: "INPUT_04"
@@ -479,14 +529,11 @@ binary_sensor:
       inverted: true
     on_press:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
-    on_release:
+        - script.execute: display_info      
+    on_release: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info    
+
 
   - platform: gpio
     name: "INPUT_06"
@@ -498,11 +545,8 @@ binary_sensor:
       inverted: true
     on_press:
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
-    on_release:
+        - script.execute: display_info      
+    on_release: 
       then:
-        - display.page.show: page2      
-        - delay: 10s
-        - display.page.show: page3
+        - script.execute: display_info       
+
