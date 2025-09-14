@@ -1,4 +1,6 @@
 # Relay board located on attic
+#
+#
 
 substitutions:
   devicename: relay-board
@@ -24,7 +26,7 @@ globals:
 
 esphome:
   name: ${devicename}
-  friendly_name: "Attic"
+  friendly_name: "Relay board"
 
 esp32:
   board: esp32dev
