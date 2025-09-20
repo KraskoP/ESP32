@@ -17,7 +17,7 @@ globals:
      type: std::string
      restore_value: yes
      max_restore_data_length: 24
-     initial_value: '"2.0"'
+     initial_value: '"2.5"'
 
    - id: board_no
      type: std::string
@@ -377,6 +377,10 @@ switch:
     on_turn_on: 
       then:
         - script.execute: display_info      
+      # Wait for 500 milliseconds
+        - delay: 500ms
+      # Then turn the relay off
+        - switch.turn_off: 'relay01'      
 
   - platform: gpio
     name: "relay2"
@@ -391,7 +395,11 @@ switch:
         - script.execute: display_info      
     on_turn_on: 
       then:
-        - script.execute: display_info      
+        - script.execute: display_info
+      # Wait for 500 milliseconds
+        - delay: 500ms
+      # Then turn the relay off
+        - switch.turn_off: 'relay02'               
 
 
   - platform: gpio
@@ -407,7 +415,11 @@ switch:
         - script.execute: display_info      
     on_turn_on: 
       then:
-        - script.execute: display_info      
+        - script.execute: display_info
+      # Wait for 500 milliseconds
+        - delay: 500ms
+      # Then turn the relay off
+        - switch.turn_off: 'relay03'               
 
   - platform: gpio
     name: "relay4"
@@ -471,7 +483,7 @@ binary_sensor:
       pcf8574: pcf8574_hub_in_1
       number: 0
       mode: input
-      inverted: false
+      inverted: true
     on_press:
       then:
         - script.execute: display_info      
