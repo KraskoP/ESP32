@@ -1,3 +1,8 @@
+# This is a yaml for the relay board in the attic 
+#
+#
+#
+
 substitutions:
   devicename: relay-board
   countdown_time: 10s
@@ -18,7 +23,7 @@ globals:
      type: std::string
      restore_value: yes
      max_restore_data_length: 24
-     initial_value: '"1"'
+     initial_value: '"0"'
 
 esphome:
   name: ${devicename}
@@ -507,6 +512,13 @@ binary_sensor:
       number: 3
       mode: input
       inverted: true
+    on_press:
+      then:
+        - script.execute: display_info      
+    on_release: 
+      then:
+        - script.execute: display_info   
+
   - platform: gpio
     name: "INPUT_05"
     id: 'input05'

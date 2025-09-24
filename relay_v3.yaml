@@ -17,7 +17,7 @@ globals:
      type: std::string
      restore_value: yes
      max_restore_data_length: 24
-     initial_value: '"2.0"'
+     initial_value: '"2.5"'
 
    - id: board_no
      type: std::string
@@ -306,7 +306,7 @@ display:
         lambda: |-
           // this will be a black display 
 
-          it.print(2, 0,  id(my_font), " ");
+          it.print(2, 2,  id(my_font), " ");
 
 
 script:
@@ -471,7 +471,7 @@ binary_sensor:
       pcf8574: pcf8574_hub_in_1
       number: 0
       mode: input
-      inverted: false
+      inverted: true
     on_press:
       then:
         - script.execute: display_info      
@@ -521,6 +521,13 @@ binary_sensor:
       number: 3
       mode: input
       inverted: true
+    on_press:
+      then:
+        - script.execute: display_info      
+    on_release: 
+      then:
+        - script.execute: display_info  
+
   - platform: gpio
     name: "INPUT_05"
     id: 'input05'
