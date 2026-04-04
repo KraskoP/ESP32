@@ -1,5 +1,5 @@
 substitutions:
-  devicename: "Watering controler"
+  devicename: "watering-controler"
 
 
 esphome:
@@ -130,6 +130,12 @@ spi:
   clk_pin: GPIO 5
   mosi_pin: GPIO 6
 
+image:
+  - file: "background.jpg"  # Nazwa Twojego pliku
+    id: my_background
+    resize: 480x320         # ESPHome sam dopasuje rozmiar, jeśli trzeba
+    type: COLOR             # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
+
 display:
   - platform: mipi_spi
     id: my_display
@@ -146,16 +152,17 @@ display:
 
     lambda: |-
       // 1. Tło i biała ramka
-      it.fill(Color::BLACK);
-      it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
+      // it.fill(Color::BLACK);
+      // it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
+      it.image(0, 0, id(my_background));
 
       // 2. Czas od uruchomienia
       //float t = millis() / 1000.0;
       //it.printf(10, 10, id(my_font), Color(255, 255, 255), "Czas: %.1fs", t);
 
       auto time_now = id(my_time).now();
-      it.strftime(10, 240, id(my_font), Color::WHITE, "%d.%m.%Y", time_now);
-      it.strftime(280, 240, id(my_font), Color::GREEN, "%H:%M:%S", time_now);
+      it.strftime(10, 240, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
+      it.strftime(280, 240, id(my_font), Color(0, 200, 0), "%H:%M:%S", time_now);
 
       // 3. Test kolorów (R, G, B, Y) - definiujemy przez Color(R, G, B)
       it.filled_rectangle(10, 40, 50, 50, Color(255, 0, 0));   // Czerwony
