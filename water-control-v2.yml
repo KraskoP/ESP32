@@ -1,0 +1,335 @@
+substitutions:
+  devicename: "Watering controler"
+
+
+esphome:
+  name: ${devicename}
+  on_boot:
+    priority: -10
+    then:
+      - switch.turn_on: backlight_switch
+
+
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "jRk+WH7ka6UoenNffrOExh0USPW5De1pP9OPOPD1K4I="
+
+ota:
+  - platform: esphome
+    password: "c6c2114b18b59dd26417358b1a8c51ab"
+
+web_server:
+  port: 80
+  auth:
+    username: !secret web_server_username
+    password: !secret web_server_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+ap:
+    ssid: ${devicename} "Fallback Hotspot"
+    password: "ztKHYUuuA5iB"
+
+captive_portal:
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+      id: esp_ip
+      icon: "mdi:information-box"
+    ssid:
+      name: WIFI SSID
+      id: esp_ssid
+      icon: "mdi:information-box"
+    mac_address:
+      name: MAC Address
+      id: esp_mac
+      icon: "mdi:information-box"
+      
+#I2C bus define
+i2c:
+  sda: GPIO41
+  scl: GPIO42
+  scan: True
+  id: bus_a
+  frequency: 50kHz
+
+sensor:
+
+  # Wi-Fi Signal Strength (measured in dBm)
+  - platform: wifi_signal
+    name: "WiFi Signal Strength"
+    id: my_wifi_signal
+    device_class: "signal_strength"
+    unit_of_measurement: "dBm"    
+    update_interval: 240s
+
+# Uptime Sensor (How long the ESP has been running)
+  - platform: uptime
+    name: "Uptime"
+    id: my_uptime
+    update_interval: 60s
+    
+  # Internal Chip Temperature (Optional but useful for S3)
+  - platform: internal_temperature
+    name: "ESP32 Internal Temp."
+    id: internal_temp
+
+  - platform: bme280
+    temperature:
+      name: ${devicename} Temperature
+      id: bme280_temperature
+      oversampling: 16x
+    pressure:
+      name: ${devicename} Pressure
+      id: bme280_pressure
+    humidity:
+      name: ${devicename} Humidity
+      id: bme280_humidity
+    address: 0x76
+    update_interval: 60s
+   
+   
+  - platform: bh1750
+    name: ${devicename} Illuminance
+    id: bh1750_illuminance
+    address: 0x23
+#    measurement_duration: 69
+#    update_interval: 10s
+
+time:
+  - platform: sntp
+    id: my_time
+    timezone: "Europe/Warsaw" # Ustawia polską strefę czasową
+    servers:
+      - 0.pool.ntp.org
+
+
+# Podstawowa czcionka (wymagana do lambdy)
+font:
+  - file: "gfonts://Roboto"
+    id: my_font
+    size: 30
+
+# Magistrala SPI na bezpiecznych pinach
+spi:
+  clk_pin: GPIO 5
+  mosi_pin: GPIO 6
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ST7796
+    dimensions:
+      width: 480
+      height: 320
+    # Sugerowane bezpieczniejsze piny dla S3:
+    cs_pin: GPIO 4
+    dc_pin: GPIO 7
+    reset_pin: GPIO 8
+    rotation: 90
+    data_rate: 40MHz
+
+    lambda: |-
+      // 1. Tło i biała ramka
+      it.fill(Color::BLACK);
+      it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
+
+      // 2. Czas od uruchomienia
+      //float t = millis() / 1000.0;
+      //it.printf(10, 10, id(my_font), Color(255, 255, 255), "Czas: %.1fs", t);
+
+      auto time_now = id(my_time).now();
+      it.strftime(10, 240, id(my_font), Color::WHITE, "%d.%m.%Y", time_now);
+      it.strftime(280, 240, id(my_font), Color::GREEN, "%H:%M:%S", time_now);
+
+      // 3. Test kolorów (R, G, B, Y) - definiujemy przez Color(R, G, B)
+      it.filled_rectangle(10, 40, 50, 50, Color(255, 0, 0));   // Czerwony
+      it.filled_rectangle(70, 40, 50, 50, Color(0, 255, 0));   // Zielony
+      it.filled_rectangle(130, 40, 50, 50, Color(0, 0, 255));  // Niebieski
+      it.filled_rectangle(190, 40, 50, 50, Color(255, 255, 0));// Żółty
+
+      // 4. Dynamiczne kółko
+      // int x_pos = 240 + (int)(100 * sin(t * 2));
+      // int y_pos = 200 + (int)(50 * cos(t * 2));
+
+      // it.filled_circle(x_pos, y_pos, 30, Color(0, 255, 255)); // Cyjan
+      
+      // 5. Linia i tekst
+      // it.line(10, 310, x_pos, y_pos, Color(255, 0, 255));     // Magenta
+      it.print(280, 10, id(my_font), Color(255, 255, 0), "ST7796 TEST OK");
+
+      it.printf(10, 100, id(my_font), Color(255, 255, 255), "R1:%s R2:%s R3:%s", 
+          id(relay_1).state ? "ON" : "OFF",
+          id(relay_2).state ? "ON" : "OFF",
+          id(relay_3).state ? "ON" : "OFF");
+
+
+
+#    lambda: |-
+#      it.fill(Color::BLACK);
+#      it.print(20, 20, id(my_font), Color::WHITE, "EKRAN DZIALA!");
+
+# Uproszczone podświetlenie jako zwykły PIN
+
+switch:
+  - platform: gpio
+    pin: GPIO 9
+    id: backlight_switch
+    name: "Podswietlenie"
+    restore_mode: ALWAYS_ON
+
+  - platform: gpio
+    pin: GPIO15
+    id: relay_1
+    name: "Relay 1"
+    inverted: false 
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    pin: GPIO16
+    id: relay_2
+    name: "Relay 2"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    pin: GPIO17
+    id: relay_3
+    name: "Relay 3"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+  - platform: gpio
+    pin: GPIO18
+    id: relay_4
+    name: "Relay 4"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+  - platform: gpio
+    pin: GPIO43 # Using higher pins for S3 safety
+    id: relay_5
+    name: "Relay 5"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+  - platform: gpio
+    pin: GPIO44
+    id: relay_6
+    name: "Relay 6"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+# 2. Define the Trigger Inputs (Binary Sensors)
+# These will trigger the relays when they receive a HIGH signal.
+binary_sensor:
+  - platform: gpio
+    pin: 
+      number: GPIO10
+      mode: INPUT_PULLDOWN # Keeps pin at 0V until a 5V/3.3V signal arrives
+    name: "Trigger 1"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press:
+      then:
+        - switch.turn_on: relay_1
+    on_release:
+      then:
+        - switch.turn_off: relay_1
+
+  - platform: gpio
+    pin: 
+      number: GPIO11 
+      mode: INPUT_PULLDOWN
+    name: "Trigger 2"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_2
+    on_release:
+      then:
+        - switch.turn_off: relay_2    
+
+  - platform: gpio
+    pin: 
+      number: GPIO12 
+      mode: INPUT_PULLDOWN
+    name: "Trigger 3"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_3
+    on_release:
+      then:
+        - switch.turn_off: relay_3    
+
+  - platform: gpio
+    pin: 
+      number: GPIO13 
+      mode: INPUT_PULLDOWN
+    name: "Trigger 4"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_4
+    on_release:
+      then:
+        - switch.turn_off: relay_4    
+
+
+  - platform: gpio
+    pin: 
+      number: GPIO14
+      mode: INPUT_PULLDOWN
+    name: "Trigger 5"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_5
+    on_release:
+      then:
+        - switch.turn_off: relay_5    
+
+
+  - platform: gpio
+    pin: 
+      number: GPIO21
+      mode: INPUT_PULLDOWN
+    name: "Trigger 6"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_6
+    on_release:
+      then:
+        - switch.turn_off: relay_6
