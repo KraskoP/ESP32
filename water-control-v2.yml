@@ -181,6 +181,7 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
+    auto_clear_enabled: false
     update_interval: 500ms
 
     lambda: |-
@@ -239,15 +240,6 @@ display:
       it.strftime(10, 290, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
       it.strftime(280, 290, id(my_font), Color(0, 200, 0), "%H:%M:%S", time_now);
       
-      // 3. Test kolorów (R, G, B, Y) - definiujemy przez Color(R, G, B)
-      //it.filled_rectangle(10, 40, 50, 50, Color(255, 0, 0));   // Czerwony
-      //it.filled_rectangle(70, 40, 50, 50, Color(0, 255, 0));   // Zielony
-      //it.filled_rectangle(130, 40, 50, 50, Color(0, 0, 255));  // Niebieski
-      //it.filled_rectangle(190, 40, 50, 50, Color(255, 255, 0));// Żółty
-     
-      // 5. Linia i tekst
-      // it.line(10, 310, x_pos, y_pos, Color(255, 0, 255));     // Magenta
-      // it.print(280, 10, id(my_font), Color(255, 255, 0), "ST7796 TEST OK");
 
       //it.printf(10, 100, id(my_font), Color(255, 255, 255), "R1:%s R2:%s R3:%s", 
       //    id(relay_1).state ? "ON" : "OFF",
