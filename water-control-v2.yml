@@ -82,12 +82,16 @@ sensor:
     id: my_encoder
     pin_a: GPIO19
     pin_b: GPIO20
+    min_value: 0
+    max_value: 3
+    resolution: 1
+
     on_value:
       then:
         - lambda: |-
               if (!id(is_locked)) {
-              id(selected_square) = (int)x % 4;
-              if (id(selected_square) < 0) id(selected_square) += 4;
+              id(selected_square) = (int)x;
+              // if (id(selected_square) < 0) id(selected_square) += 4;
               // WYMUŚ ODŚWIEŻENIE EKRANU NATYCHMIAST PO RUCHU:
               id(my_display).update(); 
               }
@@ -176,8 +180,8 @@ display:
 
     lambda: |-
       // 1. Tło i biała ramka
-      // it.fill(Color::BLACK);
-      // it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
+        it.fill(Color(0,0,0));
+        it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
       // it.image(0, 0, id(my_background));
  
       // Tablica kolorów bazowych
@@ -186,24 +190,18 @@ display:
           Color(0, 255, 0),   // 1: Zielony
           Color(0, 0, 255),   // 2: Niebieski
           Color(255, 255, 0)  // 3: Żółty
-      };
+        };
 
         for (int i = 0; i < 4; i++) {
-          int x_offset = 10 + (i * 60);
-          Color draw_color = colors[i];
-
-        // Jeśli kwadrat jest wybrany (selected_square == i)
-          if (id(selected_square) == i) {
-            draw_color = Color(255, 255, 255); // Zmień na biały
+          int x_offset = 10 + (i * 70);
+          Color draw_color = (id(selected_square) == i) ? Color(255, 255, 255) : colors[i];
+          it.filled_rectangle(x_offset, 40, 50, 50, draw_color);
+    
+         // Jeśli zablokowane (LOCKED), narysuj ramkę wokół wybranego
+         if (id(selected_square) == i && id(is_locked)) {
+            it.rectangle(x_offset - 3, 37, 56, 56, Color(255, 255, 255));
          }
-
-        it.filled_rectangle(x_offset, 40, 50, 50, draw_color);
-        
-        // Opcjonalna ramka dla zatwierdzonego (locked) wyboru
-        if (id(selected_square) == i && id(is_locked)) {
-          it.rectangle(x_offset-2, 38, 54, 54, Color(255, 255, 255)); 
         }
-      }
 
       // 2. Czas od uruchomienia
       //float t = millis() / 1000.0;
@@ -221,7 +219,7 @@ display:
      
       // 5. Linia i tekst
       // it.line(10, 310, x_pos, y_pos, Color(255, 0, 255));     // Magenta
-      it.print(280, 10, id(my_font), Color(255, 255, 0), "ST7796 TEST OK");
+      // it.print(280, 10, id(my_font), Color(255, 255, 0), "ST7796 TEST OK");
 
       it.printf(10, 100, id(my_font), Color(255, 255, 255), "R1:%s R2:%s R3:%s", 
           id(relay_1).state ? "ON" : "OFF",
@@ -299,9 +297,13 @@ binary_sensor:
       mode: INPUT_PULLUP
       inverted: true
     name: "Encoder Button"
+    filters:
+      - delayed_on: 20ms
     on_press:
       then:
-        - lambda: "id(is_locked) = !id(is_locked);"
+        - lambda: |- 
+              "id(is_locked) = !id(is_locked);"
+               ESP_LOGD("custom", "Stan blokady: %s", id(is_locked) ? "ZABLOKOWANO" : "WOLNY");        
 
   - platform: gpio
     pin: 
