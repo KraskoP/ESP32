@@ -10,6 +10,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
+  - id: redraw_background
+    type: bool
+    restore_value: no
+    initial_value: "true" # Zaczynamy od true, by narysować tło po starcie
 
 esphome:
   name: ${devicename}
@@ -182,7 +186,7 @@ display:
 
       auto draw_zone = [&](Point pts[], int count, bool is_active, Color active_col) 
        {
-        Color col = is_active ? active_col : Color(60, 60, 60); // Świeci na kolorowo lub jest szary
+        Color col = is_active ? active_col : Color(60, 60, 60); // kolor szary
         int thickness = is_active ? 2 : 1; // Grubsza linia gdy pracuje
 
        for (int i = 0; i < count; i++) 
@@ -201,9 +205,13 @@ display:
 
 
       // 1. Tło i biała ramka
-        //it.fill(Color(0,0,0));
-        //it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
-        it.image(0, 0, id(my_background));
+      //it.fill(Color(0,0,0));
+      //it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
+        if (id(redraw_background)) 
+        {
+          it.image(0, 0, id(my_background));
+          id(redraw_background) = false; // Po narysowaniu blokujemy, by nie spowalniać pętli
+        }
  
       // Tablica kolorów bazowych
         Color colors[] = 
@@ -230,28 +238,11 @@ display:
       draw_zone(s2, 9, id(relay_2).state, Color(0, 150, 255));  // Sekcja 2 - Niebieska
 
 
-
-        for (int i = 0; i < 4; i++) 
-        {
-          int x_offset = 10 + (i * 70);
-          Color draw_color = (id(selected_square) == i) ? Color(255, 255, 255) : colors[i];
-          it.filled_rectangle(x_offset, 40, 50, 50, draw_color);
-    
-         // Jeśli zablokowane (LOCKED), narysuj ramkę wokół wybranego
-         if (id(selected_square) == i && id(is_locked)) 
-          {
-            it.rectangle(x_offset - 3, 37, 56, 56, Color(255, 255, 255));
-          }
-        }
-
-      // 2. Czas od uruchomienia
-      //float t = millis() / 1000.0;
-      //it.printf(10, 10, id(my_font), Color(255, 255, 255), "Czas: %.1fs", t);
-
       auto time_now = id(my_time).now();
-      it.strftime(10, 240, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
-      it.strftime(280, 240, id(my_font), Color(0, 200, 0), "%H:%M:%S", time_now);
-
+      it.filled_rectangle(0, 270, 460, 49, Color(103, 103, 103));   // background color in this part 
+      it.strftime(10, 310, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
+      it.strftime(280, 310, id(my_font), Color(0, 200, 0), "%H:%M:%S", time_now);
+      
       // 3. Test kolorów (R, G, B, Y) - definiujemy przez Color(R, G, B)
       //it.filled_rectangle(10, 40, 50, 50, Color(255, 0, 0));   // Czerwony
       //it.filled_rectangle(70, 40, 50, 50, Color(0, 255, 0));   // Zielony
@@ -262,18 +253,11 @@ display:
       // it.line(10, 310, x_pos, y_pos, Color(255, 0, 255));     // Magenta
       // it.print(280, 10, id(my_font), Color(255, 255, 0), "ST7796 TEST OK");
 
-      it.printf(10, 100, id(my_font), Color(255, 255, 255), "R1:%s R2:%s R3:%s", 
-          id(relay_1).state ? "ON" : "OFF",
-          id(relay_2).state ? "ON" : "OFF",
-          id(relay_3).state ? "ON" : "OFF");
+      //it.printf(10, 100, id(my_font), Color(255, 255, 255), "R1:%s R2:%s R3:%s", 
+      //    id(relay_1).state ? "ON" : "OFF",
+      //    id(relay_2).state ? "ON" : "OFF",
+      //    id(relay_3).state ? "ON" : "OFF");
 
-
-
-#    lambda: |-
-#      it.fill(Color::BLACK);
-#      it.print(20, 20, id(my_font), Color::WHITE, "EKRAN DZIALA!");
-
-# Uproszczone podświetlenie jako zwykły PIN
 
 switch:
   - platform: gpio
@@ -288,6 +272,10 @@ switch:
     name: "Relay 1"
     inverted: false 
     restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - display.page.show: my_display # To wymusi ponowne przeliczenie lambdy
+    on_turn_off:
+      - display.page.show: my_display
 
   - platform: gpio
     pin: GPIO16
@@ -295,6 +283,10 @@ switch:
     name: "Relay 2"
     inverted: false
     restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - display.page.show: my_display # To wymusi ponowne przeliczenie lambdy
+    on_turn_off:
+      - display.page.show: my_display
 
   - platform: gpio
     pin: GPIO17
