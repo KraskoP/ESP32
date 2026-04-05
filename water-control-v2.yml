@@ -251,10 +251,10 @@ display:
       it.strftime(280, 240, id(my_font), Color(0, 200, 0), "%H:%M:%S", time_now);
 
       // 3. Test kolorów (R, G, B, Y) - definiujemy przez Color(R, G, B)
-      it.filled_rectangle(10, 40, 50, 50, Color(255, 0, 0));   // Czerwony
-      it.filled_rectangle(70, 40, 50, 50, Color(0, 255, 0));   // Zielony
-      it.filled_rectangle(130, 40, 50, 50, Color(0, 0, 255));  // Niebieski
-      it.filled_rectangle(190, 40, 50, 50, Color(255, 255, 0));// Żółty
+      //it.filled_rectangle(10, 40, 50, 50, Color(255, 0, 0));   // Czerwony
+      //it.filled_rectangle(70, 40, 50, 50, Color(0, 255, 0));   // Zielony
+      //it.filled_rectangle(130, 40, 50, 50, Color(0, 0, 255));  // Niebieski
+      //it.filled_rectangle(190, 40, 50, 50, Color(255, 255, 0));// Żółty
      
       // 5. Linia i tekst
       // it.line(10, 310, x_pos, y_pos, Color(255, 0, 255));     // Magenta
@@ -341,7 +341,7 @@ binary_sensor:
     on_press:
       then:
         - lambda: |- 
-              "id(is_locked) = !id(is_locked);"
+               id(is_locked) = !id(is_locked);
                ESP_LOGD("custom", "Stan blokady: %s", id(is_locked) ? "ZABLOKOWANO" : "WOLNY");        
                id(my_display).update(); // Dodaj to tutaj!
 
