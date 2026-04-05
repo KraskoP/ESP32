@@ -10,10 +10,6 @@ globals:
     type: bool
     restore_value: no
     initial_value: "false"
-  - id: redraw_background
-    type: bool
-    restore_value: no
-    initial_value: "true" # Zaczynamy od true, by narysować tło po starcie
 
 esphome:
   name: ${devicename}
@@ -163,10 +159,12 @@ spi:
   mosi_pin: GPIO 6
 
 image:
-  - file: "backgroundsm.png"  # Nazwa Twojego pliku
+  - file: "backgroundpico.png"  # Nazwa Twojego pliku
     id: my_background
     resize: 480x320         # ESPHome sam dopasuje rozmiar, jeśli trzeba
-    type: RGB               # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
+    type: INDEXED           # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
+    dither: NONE
+    use_raw_data: true
 
 display:
   - platform: mipi_spi
@@ -181,7 +179,6 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
-    auto_clear_enabled: false
     update_interval: 500ms
 
     lambda: |-
@@ -226,11 +223,7 @@ display:
       // 1. Tło i biała ramka
       ;//  it.fill(Color(80,80,80));
       //   it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
-        if (id(redraw_background)) 
-        {
           it.image(0, 0, id(my_background));
-          id(redraw_background) = false; // Po narysowaniu blokujemy, by nie spowalniać pętli
-        }
  
 
       // 2. Rysujemy Sekcje (zmieniają kolor gdy przekaźnik jest ON)
@@ -319,7 +312,6 @@ binary_sensor:
         - lambda: |- 
                id(is_locked) = !id(is_locked);
                ESP_LOGD("custom", "Stan blokady: %s", id(is_locked) ? "ZABLOKOWANO" : "WOLNY");        
-               id(redraw_background) = true;
                id(my_display).update(); // Dodaj to tutaj!
 
   - platform: gpio
