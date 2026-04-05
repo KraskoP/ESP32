@@ -180,7 +180,7 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
-    update_interval: 1s
+    update_interval: 500ms
 
     lambda: |-
 
@@ -272,10 +272,6 @@ switch:
     name: "Relay 1"
     inverted: false 
     restore_mode: ALWAYS_OFF
-    on_turn_on:
-      - display.page.show: my_display # To wymusi ponowne przeliczenie lambdy
-    on_turn_off:
-      - display.page.show: my_display
 
   - platform: gpio
     pin: GPIO16
@@ -283,10 +279,6 @@ switch:
     name: "Relay 2"
     inverted: false
     restore_mode: ALWAYS_OFF
-    on_turn_on:
-      - display.page.show: my_display # To wymusi ponowne przeliczenie lambdy
-    on_turn_off:
-      - display.page.show: my_display
 
   - platform: gpio
     pin: GPIO17
@@ -294,7 +286,6 @@ switch:
     name: "Relay 3"
     inverted: false
     restore_mode: ALWAYS_OFF
-
 
   - platform: gpio
     pin: GPIO18
