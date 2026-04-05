@@ -107,24 +107,25 @@ sensor:
     id: my_uptime
     update_interval: 60s
     
-  # Internal Chip Temperature (Optional but useful for S3)
+# Internal Chip Temperature (Optional but useful for S3)
   - platform: internal_temperature
     name: "ESP32 Internal Temp."
     id: internal_temp
 
-  - platform: bme280
-    temperature:
-      name: ${devicename} Temperature
-      id: bme280_temperature
-      oversampling: 16x
-    pressure:
-      name: ${devicename} Pressure
-      id: bme280_pressure
-    humidity:
-      name: ${devicename} Humidity
-      id: bme280_humidity
-    address: 0x76
-    update_interval: 60s
+# For now I don't know why this sensor does not work. Commented.
+#  - platform: bme280
+#    temperature:
+#      name: ${devicename} Temperature
+#      id: bme280_temperature
+#      oversampling: 16x
+#    pressure:
+#      name: ${devicename} Pressure
+#      id: bme280_pressure
+#    humidity:
+#      name: ${devicename} Humidity
+#      id: bme280_humidity
+#    address: 0x76
+#    update_interval: 60s
    
    
   - platform: bh1750
