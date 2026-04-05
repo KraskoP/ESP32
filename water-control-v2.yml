@@ -82,8 +82,8 @@ sensor:
 sensor:
   - platform: rotary_encoder
     id: my_encoder
-    pin_a: GPIO3
-    pin_b: GPIO46
+    pin_a: GPIO35
+    pin_b: GPIO36
     on_value:
       then:
         - lambda: |-
@@ -295,7 +295,7 @@ binary_sensor:
 
   - platform: gpio
     pin:
-      number: GPIO45
+      number: GPIO37
       mode: INPUT_PULLUP
       inverted: true
     name: "Encoder Button"
