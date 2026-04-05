@@ -231,15 +231,17 @@ display:
 
 
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) 
+        {
           int x_offset = 10 + (i * 70);
           Color draw_color = (id(selected_square) == i) ? Color(255, 255, 255) : colors[i];
           it.filled_rectangle(x_offset, 40, 50, 50, draw_color);
     
          // Jeśli zablokowane (LOCKED), narysuj ramkę wokół wybranego
-         if (id(selected_square) == i && id(is_locked)) {
+         if (id(selected_square) == i && id(is_locked)) 
+          {
             it.rectangle(x_offset - 3, 37, 56, 56, Color(255, 255, 255));
-         }
+          }
         }
 
       // 2. Czas od uruchomienia
