@@ -158,7 +158,7 @@ spi:
   mosi_pin: GPIO 6
 
 image:
-  - file: "background.png"  # Nazwa Twojego pliku
+  - file: "backgroundsm.png"  # Nazwa Twojego pliku
     id: my_background
     resize: 480x320         # ESPHome sam dopasuje rozmiar, jeśli trzeba
     type: RGB               # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
@@ -179,18 +179,57 @@ display:
     update_interval: 1s
 
     lambda: |-
+
+      auto draw_zone = [&](Point pts[], int count, bool is_active, Color active_col) 
+       {
+        Color col = is_active ? active_col : Color(60, 60, 60); // Świeci na kolorowo lub jest szary
+        int thickness = is_active ? 2 : 1; // Grubsza linia gdy pracuje
+
+       for (int i = 0; i < count; i++) 
+        {
+         int x1 = pts[i].x; int y1 = pts[i].y;
+         int x2 = pts[(i + 1) % count].x; int y2 = pts[(i + 1) % count].y;
+      
+         it.line(x1, y1, x2, y2, col);
+         if (is_active) 
+         {
+          it.line(x1+1, y1, x2+1, y2, col); // Pogrubienie dla aktywnych
+          it.filled_circle(x1, y1, 1, col);
+         }
+        }
+       };
+
+
       // 1. Tło i biała ramka
-        it.fill(Color(0,0,0));
-        it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
-      // it.image(0, 0, id(my_background));
+        //it.fill(Color(0,0,0));
+        //it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
+        it.image(0, 0, id(my_background));
  
       // Tablica kolorów bazowych
-        Color colors[] = {
+        Color colors[] = 
+        {
           Color(255, 0, 0),   // 0: Czerwony
           Color(0, 255, 0),   // 1: Zielony
           Color(0, 0, 255),   // 2: Niebieski
           Color(255, 255, 0)  // 3: Żółty
         };
+
+      struct Point { int x; int y; };
+  
+      // Główne granice działki (11 punktów)
+      Point granica[] = {{50,50}, {400,50}, {420,250}, {50,250}}; // przykładowe
+        
+      // Sekcja 1 (np. Trawnik Front)
+      Point s1[] = {{35,270}, {175,270}, {175,250}, {135,250}, {115, 230}, {115, 165}, {35, 165}, {35,220}, {70,220}, {70,250}, {35, 250}, {35, 270} };
+        
+      // Sekcja 2 (np. Rabaty)
+      Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
+
+      // 2. Rysujemy Sekcje (zmieniają kolor gdy przekaźnik jest ON)
+      draw_zone(s1, 11, id(relay_1).state, Color(0, 255, 0));   // Sekcja 1 - Zielona
+      draw_zone(s2, 9, id(relay_2).state, Color(0, 150, 255));  // Sekcja 2 - Niebieska
+
+
 
         for (int i = 0; i < 4; i++) {
           int x_offset = 10 + (i * 70);
@@ -305,7 +344,7 @@ binary_sensor:
               "id(is_locked) = !id(is_locked);"
                ESP_LOGD("custom", "Stan blokady: %s", id(is_locked) ? "ZABLOKOWANO" : "WOLNY");        
                id(my_display).update(); // Dodaj to tutaj!
-                
+
   - platform: gpio
     pin: 
       number: GPIO10
