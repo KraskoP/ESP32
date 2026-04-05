@@ -78,12 +78,10 @@ i2c:
   frequency: 50kHz
 
 sensor:
-
-sensor:
   - platform: rotary_encoder
     id: my_encoder
-    pin_a: GPIO35
-    pin_b: GPIO36
+    pin_a: GPIO19
+    pin_b: GPIO20
     on_value:
       then:
         - lambda: |-
@@ -155,10 +153,10 @@ spi:
   mosi_pin: GPIO 6
 
 image:
-  - file: "background.jpg"  # Nazwa Twojego pliku
+  - file: "background.png"  # Nazwa Twojego pliku
     id: my_background
     resize: 480x320         # ESPHome sam dopasuje rozmiar, jeśli trzeba
-    type: COLOR             # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
+    type: RGB               # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
 
 display:
   - platform: mipi_spi
@@ -295,7 +293,7 @@ binary_sensor:
 
   - platform: gpio
     pin:
-      number: GPIO37
+      number: GPIO1
       mode: INPUT_PULLUP
       inverted: true
     name: "Encoder Button"
