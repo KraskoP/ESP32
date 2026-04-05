@@ -155,7 +155,7 @@ time:
 font:
   - file: "gfonts://Roboto"
     id: my_font
-    size: 30
+    size: 20
 
 # Magistrala SPI na bezpiecznych pinach
 spi:
@@ -181,7 +181,7 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
-    auto_clear_enabled: false
+    # auto_clear_enabled: false
     update_interval: 500ms
 
     lambda: |-
@@ -200,9 +200,12 @@ display:
         // 2. Jeśli nie wybrany, ale podlewa -> Kolor aktywny (np. zielony)
         // 3. W innym przypadku -> Szary
         Color col = Color(60, 60, 60); // domyślny szary
-        if (is_selected) {
+        if (is_selected) 
+        {
             col = Color(0, 150, 255); // jasnoniebieski "focus"
-        } else if (is_active) {
+        } 
+        else if (is_active) 
+        {
             col = active_col;
         }
 
@@ -221,13 +224,13 @@ display:
 
 
       // 1. Tło i biała ramka
-      //it.fill(Color(0,0,0));
+        it.fill(Color(80,80,80));
       //it.rectangle(0, 0, 480, 320, Color(255, 255, 255)); 
-        if (id(redraw_background)) 
-        {
-          it.image(0, 0, id(my_background));
-          id(redraw_background) = false; // Po narysowaniu blokujemy, by nie spowalniać pętli
-        }
+      //  if (id(redraw_background)) 
+      //  {
+      //    it.image(0, 0, id(my_background));
+      //    id(redraw_background) = false; // Po narysowaniu blokujemy, by nie spowalniać pętli
+      //  }
  
 
       // 2. Rysujemy Sekcje (zmieniają kolor gdy przekaźnik jest ON)
