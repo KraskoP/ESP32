@@ -158,14 +158,6 @@ spi:
   clk_pin: GPIO 5
   mosi_pin: GPIO 6
 
-image:
-  - file: "backgroundpico.png"  # Nazwa Twojego pliku
-    id: my_background
-    resize: 480x320         # ESPHome sam dopasuje rozmiar, jeśli trzeba
-    type: INDEXED           # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
-    dither: NONE
-    use_raw_data: true
-
 display:
   - platform: mipi_spi
     id: my_display
