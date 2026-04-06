@@ -31,7 +31,7 @@ esp32:
 
 
 psram:
-  mode: octal;
+  mode: octal
 
 # Enable logging
 logger:
@@ -163,8 +163,8 @@ font:
 
 # Magistrala SPI na bezpiecznych pinach
 spi:
-  clk_pin: GPIO 5
-  mosi_pin: GPIO 6
+  clk_pin: GPIO5
+  mosi_pin: GPIO6
 
 display:
   - platform: mipi_spi
@@ -174,9 +174,9 @@ display:
       width: 480
       height: 320
     # Sugerowane bezpieczniejsze piny dla S3:
-    cs_pin: GPIO 4
-    dc_pin: GPIO 7
-    reset_pin: GPIO 8
+    cs_pin: GPIO4
+    dc_pin: GPIO7
+    reset_pin: GPIO8
     rotation: 90
     data_rate: 40MHz
     update_interval: 1s
@@ -191,7 +191,7 @@ display:
       // Sekcja 2 (Trawnik Front Tył)
       static Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
       // Sekcja 3 (Trawnik Taras)
-      static Point s3[] = {{135,30}, {270,30}, {270,70}, {300, 85}, {300, 150}, {260,140}, {200, 140}, {200, 115}, {135.,115}, {135,30}};
+      static Point s3[] = {{135,30}, {270,30}, {270,70}, {300, 85}, {300, 150}, {260,140}, {200, 140}, {200, 115}, {135,115}, {135,30}};
       // Sekcja 4 (Trawnik przed domkiem SPA)
       static Point s4[] = {{305,85}, {275,70}, {335,90}, {367,60}, {367,30}, {417,30}, {417,150}, {305, 150}, {305,85}};
       // Sekcja 5 (Trawnik za domem)
@@ -365,10 +365,10 @@ display:
       // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
       draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
       draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
-      draw_zone(S3, 10, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
-      draw_zone(S4, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
-      draw_zone(S5, 12, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
-      draw_zone(S6, 7, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
+      draw_zone(S3, 10, id(relay_3).state, (id(selected_square) == 1), Color(180, 255, 100));
+      draw_zone(S4, 9, id(relay_4).state, (id(selected_square) == 1), Color(180, 255, 100));
+      draw_zone(S5, 12, id(relay_5).state, (id(selected_square) == 1), Color(180, 255, 100));
+      draw_zone(S6, 7, id(relay_6).state, (id(selected_square) == 1), Color(180, 255, 100));
 
 
       auto time_now = id(my_time).now();
@@ -382,7 +382,7 @@ display:
 
 switch:
   - platform: gpio
-    pin: GPIO 9
+    pin: GPIO9
     id: backlight_switch
     name: "Podswietlenie"
     restore_mode: ALWAYS_ON
