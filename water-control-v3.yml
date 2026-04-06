@@ -171,7 +171,7 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
-    update_interval: 500ms
+    update_interval: 800ms
 
     lambda: |-
 
@@ -187,14 +187,14 @@ display:
       // These approximate the original image using standard 16-bit colors.
       Color color_background = Color(0, 40, 0);       // Very dark green
       Color color_pavement = Color(40, 40, 40);       // Dark charcoal/black
-      Color color_roof = Color(103, 51, 1);         // Saddle Brown
-      Color color_roof_shadow = Color(46, 29, 8);   // Dark Brown
-      Color color_shed = Color(128, 128, 128);       // Grey
-      Color color_grey = Color(103, 103, 103);       // Light Grey
-      Color color_dark = Color(5, 5, 5);               // Dark
+      Color color_roof = Color(103, 51, 1);           // Saddle Brown
+      Color color_roof_shadow = Color(46, 29, 8);     // Dark Brown
+      Color color_shed = Color(128, 128, 128);        // Grey
+      Color color_grey = Color(103, 103, 103);        // Light Grey
+      Color color_dark = Color(5, 5, 5);              // Dark
       
       // Tree variations (light to dark)
-      Color color_tree_bright = Color(127, 255, 0);  // Chartreuse
+      Color color_tree_bright = Color(127, 255, 0);   // Chartreuse
       Color color_tree_mid = Color(60, 179, 113);     // Medium Sea Green
       Color color_tree_normal = Color(0, 128, 0);     // Green
       Color color_tree_dark = Color(0, 100, 0);       // Dark Green
@@ -246,10 +246,6 @@ display:
       // Warstwa 1: Tło ogrodu (Ciemnozielony prostokąt)
       it.fill(color_background);
 
-      // --- 2. PAVEMENT & SHEDS ---
-      // Bottom Pavement Area (Dark grey)
-      it.filled_rectangle(0, 240, 480, 80, color_pavement);
-
       // Taras
       it.filled_rectangle(144, 120, 56, 42, color_grey);
       it.rectangle(144, 120, 56, 42, color_pavement); // Border
@@ -291,20 +287,21 @@ display:
 
       // Bottom-Left Clusters (Foreground)
 
-        draw_clumpy_tree(20, 220, 25, color_tree_normal, color_tree_dark, true);
-        draw_clumpy_tree(60, 210, 18, color_tree_normal, color_tree_dark, true);
+        draw_clumpy_tree(25, 246, 25, color_tree_normal, color_tree_dark, true);
+        draw_clumpy_tree(20, 210, 18, color_tree_normal, color_tree_dark, true);
         draw_clumpy_tree(105, 230, 12, color_tree_mid,    color_tree_dark, true);
         
         // Near House
-        draw_clumpy_tree(130, 170, 15, color_tree_mid,    color_tree_dark, true);
-        draw_clumpy_tree(135, 140, 15, color_tree_mid,    color_tree_dark, true);
+        draw_clumpy_tree(130, 200, 15, color_tree_normal,    color_tree_dark, true);
+        draw_clumpy_tree(135, 200, 15, color_tree_normal,    color_tree_dark, true);
 
         // Far Left Column
-        draw_clumpy_tree(20, 160, 22, color_tree_dark,   color_tree_dark, true);
-        draw_clumpy_tree(25, 120, 20, color_tree_bright, color_tree_dark, true);
-        draw_clumpy_tree(18, 80, 18, color_tree_normal,    color_tree_dark, true);
-        draw_clumpy_tree(25, 45, 16, color_tree_mid,    color_tree_dark, true);
-        draw_clumpy_tree(22, 15, 15, color_tree_dark,   color_tree_dark, true);
+        draw_clumpy_tree(22, 160, 22, color_tree_dark,   color_tree_dark, true);
+        draw_clumpy_tree(25, 120, 25, color_tree_bright, color_tree_dark, true);
+        draw_clumpy_tree(30, 90, 30, color_tree_mid,    color_tree_dark, true);
+        draw_clumpy_tree(12, 60, 18, color_tree_normal,    color_tree_dark, true);
+        draw_clumpy_tree(25, 30, 16, color_tree_mid,    color_tree_dark, true);
+        draw_clumpy_tree(22, 15, 20, color_tree_dark,   color_tree_dark, true);
 
         // Top Row (Left to Right)
         draw_clumpy_tree(60, 15, 18, color_tree_dark,   color_dark, true);
@@ -312,31 +309,43 @@ display:
         draw_clumpy_tree(150, 15, 15, color_tree_dark,   color_dark, true);
         draw_clumpy_tree(190, 15, 15, color_tree_dark,   color_dark, true);
         draw_clumpy_tree(230, 15, 15, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(270, 15, 15, color_tree_dark,   color_dark, true);
+
 
         // Large Accent Trees
-        draw_clumpy_tree(95, 55, 30, color_tree_normal, color_dark, true); // Mid-Left Big
-        draw_clumpy_tree(320, 60, 45, color_tree_mid,    color_dark, true); // Upper Right Big
+        draw_clumpy_tree(320, 40, 25, color_tree_mid,    color_dark, true); // Upper Right Big
 
         // Far Right Column
-        draw_clumpy_tree(380, 15, 15, color_tree_dark,   color_dark, true);
-        draw_clumpy_tree(420, 15, 15, color_tree_dark,   color_dark, true);
-        draw_clumpy_tree(455, 60, 30, color_tree_normal, color_dark, true); // Mid-Right Big
-        draw_clumpy_tree(430, 105, 20, color_tree_dark,   color_dark, true);
-        draw_clumpy_tree(430, 150, 22, color_tree_bright, color_dark, true);
+        draw_clumpy_tree(380, 15, 15, color_tree_dark,   color_tree_dark, true);
+        draw_clumpy_tree(420, 15, 15, color_tree_dark,   color_tree_dark, true);
+        draw_clumpy_tree(455, 60, 30, color_tree_normal, color_tree_normal, true); // Mid-Right Big
+        draw_clumpy_tree(450, 105, 25, color_tree_dark,  color_dark, true);
+        draw_clumpy_tree(430, 160, 25, color_tree_mid,   color_tree_mid, true);
 
 
       // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
       draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
       draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
 
+      // Sauna & Jacuzzi
+      it.filled_rectangle(340, 152, 57, 37, color_dark);
+      it.filled_circle(320, 170, 18, color_grey)
+
+      // Shed
+      it.filled_rectangle(411, 200, 25, 40, color_dark);
+
       // Warstwa 5: Pasek dolny z czasem i interfejsem
       auto time_now = id(my_time).now();
       
       // Tło dla interfejsu (Ciemnoszary prostokąt)
-      it.filled_rectangle(0, 275, 480, 45, Color(103, 103, 103)); 
+      it.filled_rectangle(0, 275, 480, 45, color_grey);
+
+      // Path to Garage
+      it.filled_rectangle(350, 251, 130, 25, color_grey);
+
       
-      it.strftime(10, 310, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
-      it.strftime(280, 310, id(my_font), Color(0, 255, 0), "%H:%M:%S", time_now);
+      it.strftime(10, 290, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
+      it.strftime(280, 290, id(my_font), Color(0, 255, 0), "%H:%M:%S", time_now);
       
       // Dodatkowa etykieta "SEKCJA" wewnątrz interfejsu
       it.printf(150, 290, id(my_font), Color(255, 255, 255), "SEKCJA %01d", id(selected_square) + 1);
