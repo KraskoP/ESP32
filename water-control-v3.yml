@@ -18,12 +18,15 @@ esphome:
     then:
       - switch.turn_on: backlight_switch
 
-
-
 esp32:
   board: esp32-s3-devkitc-1
   framework:
     type: esp-idf
+
+ extra_build_flags: 
+    - -DBOARD_HAS_PSRAM
+    - -mfix-esp32-s3-psram-cache-issue
+
 
 # Enable logging
 logger:
@@ -175,7 +178,7 @@ display:
 
     lambda: |-
 
-      struct Point { int x; int y; };
+      static struct Point { int x; int y; };
 
       // === 1. DEFINICJE PUNKTÓW DLA WIELOKĄTÓW (ZARYSY SEKCJI) ===
       // Sekcja 1 (np. Trawnik Front)
@@ -185,19 +188,19 @@ display:
 
       // --- COLOR DEFINITIONS ---
       // These approximate the original image using standard 16-bit colors.
-      Color color_background = Color(0, 40, 0);       // Very dark green
-      Color color_pavement = Color(40, 40, 40);       // Dark charcoal/black
-      Color color_roof = Color(103, 51, 1);           // Saddle Brown
-      Color color_roof_shadow = Color(46, 29, 8);     // Dark Brown
-      Color color_shed = Color(128, 128, 128);        // Grey
-      Color color_grey = Color(103, 103, 103);        // Light Grey
-      Color color_dark = Color(5, 5, 5);              // Dark
+      static Color color_background = Color(0, 40, 0);       // Very dark green
+      static Color color_pavement = Color(40, 40, 40);       // Dark charcoal/black
+      static Color color_roof = Color(103, 51, 1);           // Saddle Brown
+      static Color color_roof_shadow = Color(46, 29, 8);     // Dark Brown
+      static Color color_shed = Color(128, 128, 128);        // Grey
+      static Color color_grey = Color(103, 103, 103);        // Light Grey
+      static Color color_dark = Color(5, 5, 5);              // Dark
       
       // Tree variations (light to dark)
-      Color color_tree_bright = Color(127, 255, 0);   // Chartreuse
-      Color color_tree_mid = Color(60, 179, 113);     // Medium Sea Green
-      Color color_tree_normal = Color(0, 128, 0);     // Green
-      Color color_tree_dark = Color(0, 100, 0);       // Dark Green
+      static Color color_tree_bright = Color(127, 255, 0);   // Chartreuse
+      static Color color_tree_mid = Color(60, 179, 113);     // Medium Sea Green
+      static Color color_tree_normal = Color(0, 128, 0);     // Green
+      static Color color_tree_dark = Color(0, 100, 0);       // Dark Green
 
       // --- HELPER FUNCTIONS ---
       // Draws a 'clumpy' tree composed of three overlapping circles.
@@ -212,9 +215,9 @@ display:
           it.filled_circle(x + r/1.8, y + r/3, r/1.5, color_fill);
         }
         // Border lines (draw last to overlap previous trees correctly)
-        it.circle(x, y, r, color_border);
-        it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
-        it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
+        //it.circle(x, y, r, color_border);
+        //it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
+        //it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
       };
 
 
