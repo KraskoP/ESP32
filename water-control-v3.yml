@@ -1,0 +1,450 @@
+substitutions:
+  devicename: "watering-controler"
+
+globals:
+  - id: selected_square
+    type: int
+    restore_value: no
+    initial_value: "0" # 0=Czerwony, 1=Zielony, 2=Niebieski, 3=Żółty
+  - id: is_locked
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+esphome:
+  name: ${devicename}
+  on_boot:
+    priority: -10
+    then:
+      - switch.turn_on: backlight_switch
+
+
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "jRk+WH7ka6UoenNffrOExh0USPW5De1pP9OPOPD1K4I="
+
+ota:
+  - platform: esphome
+    password: "c6c2114b18b59dd26417358b1a8c51ab"
+
+web_server:
+  port: 80
+  auth:
+    username: !secret web_server_username
+    password: !secret web_server_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Watering Fallback Hotspot"
+    password: "ztKHYUuuA5iB"
+
+captive_portal:
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+      id: esp_ip
+      icon: "mdi:information-box"
+    ssid:
+      name: WIFI SSID
+      id: esp_ssid
+      icon: "mdi:information-box"
+    mac_address:
+      name: MAC Address
+      id: esp_mac
+      icon: "mdi:information-box"
+      
+#I2C bus define
+i2c:
+  sda: GPIO41
+  scl: GPIO42
+  scan: True
+  id: bus_a
+  frequency: 50kHz
+
+sensor:
+  - platform: rotary_encoder
+    id: my_encoder
+    pin_a: GPIO19
+    pin_b: GPIO20
+    min_value: 0
+    max_value: 3
+    resolution: 1
+
+    on_value:
+      then:
+        - lambda: |-
+              if (!id(is_locked)) 
+              {
+                id(selected_square) = (int)x;
+                // if (id(selected_square) < 0) id(selected_square) += 4;
+                // WYMUŚ ODŚWIEŻENIE EKRANU NATYCHMIAST PO RUCHU:
+                id(my_display).update(); 
+              }
+
+  # Wi-Fi Signal Strength (measured in dBm)
+  - platform: wifi_signal
+    name: "WiFi Signal Strength"
+    id: my_wifi_signal
+    device_class: "signal_strength"
+    unit_of_measurement: "dBm"    
+    update_interval: 240s
+
+# Uptime Sensor (How long the ESP has been running)
+  - platform: uptime
+    name: "Uptime"
+    id: my_uptime
+    update_interval: 60s
+    
+# Internal Chip Temperature (Optional but useful for S3)
+  - platform: internal_temperature
+    name: "ESP32 Internal Temp."
+    id: internal_temp
+
+# For now I don't know why this sensor does not work. Commented.
+#  - platform: bme280
+#    temperature:
+#      name: ${devicename} Temperature
+#      id: bme280_temperature
+#      oversampling: 16x
+#    pressure:
+#      name: ${devicename} Pressure
+#      id: bme280_pressure
+#    humidity:
+#      name: ${devicename} Humidity
+#      id: bme280_humidity
+#    address: 0x76
+#    update_interval: 60s
+   
+   
+  - platform: bh1750
+    name: ${devicename} Illuminance
+    id: bh1750_illuminance
+    address: 0x23
+#    measurement_duration: 69
+#    update_interval: 10s
+
+time:
+  - platform: sntp
+    id: my_time
+    timezone: "Europe/Warsaw" # Ustawia polską strefę czasową
+    servers:
+      - 0.pool.ntp.org
+
+
+# Podstawowa czcionka (wymagana do lambdy)
+font:
+  - file: "gfonts://Roboto"
+    id: my_font
+    size: 20
+
+# Magistrala SPI na bezpiecznych pinach
+spi:
+  clk_pin: GPIO 5
+  mosi_pin: GPIO 6
+
+image:
+  - file: "backgroundpico.png"  # Nazwa Twojego pliku
+    id: my_background
+    resize: 480x320         # ESPHome sam dopasuje rozmiar, jeśli trzeba
+    type: INDEXED           # Użyj COLOR dla kolorowych wyświetlaczy jak ST7796  
+    dither: NONE
+    use_raw_data: true
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ST7796
+    dimensions:
+      width: 480
+      height: 320
+    # Sugerowane bezpieczniejsze piny dla S3:
+    cs_pin: GPIO 4
+    dc_pin: GPIO 7
+    reset_pin: GPIO 8
+    rotation: 90
+    data_rate: 40MHz
+    update_interval: 500ms
+
+    lambda: |-
+
+      struct Point { int x; int y; };
+
+      // === 1. DEFINICJE PUNKTÓW DLA WIELOKĄTÓW (ZARYSY SEKCJI) ===
+      // Sekcja 1 (np. Trawnik Front)
+      Point s1[] = {{35,270}, {175,270}, {175,250}, {135,250}, {115, 230}, {115, 165}, {35, 165}, {35,220}, {70,220}, {70,250}, {35, 250}, {35, 270}};
+      // Sekcja 2 (np. Rabaty)
+      Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
+
+      // === 2. FUNKCJA RYSOWANIA GEOMETRYCZNYCH DRZEW ===
+      // 'Tree' to złożony kształt z wielu okręgów. Przekazujemy środek trunkera.
+      auto draw_circle_tree = [&](int trunkX, int trunkY, int baseR, Color trunkCol, Color leaveCol) 
+      {
+          // Trzon (Pień) - prostokąt
+          it.filled_rectangle(trunkX - (baseR/4), trunkY, baseR/2, baseR*1.5, trunkCol);
+          
+          // Korona (Liście) - złożona z 6 okręgów
+          it.filled_circle(trunkX, trunkY - baseR, baseR * 1.2, leaveCol);          // Centralny, duży
+          it.filled_circle(trunkX - baseR, trunkY - baseR*0.8, baseR, leaveCol); // Lewy
+          it.filled_circle(trunkX + baseR, trunkY - baseR*0.8, baseR, leaveCol); // Prawy
+          it.filled_circle(trunkX - baseR*0.7, trunkY - baseR*1.6, baseR*0.8, leaveCol); // Lewy górny
+          it.filled_circle(trunkX + baseR*0.7, trunkY - baseR*1.6, baseR*0.8, leaveCol); // Prawy górny
+          it.filled_circle(trunkX, trunkY - baseR*2.1, baseR*0.7, leaveCol); // Centralny górny
+      };
+
+      // === 3. FUNKCJA RYSOWANIA INTERAKTYWNYCH SEKCJI (POLIGONY) ===
+      auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected, Color active_col) 
+      {
+          // Kolory: Jasnoniebieski (Focus), Zielony (Podlewanie), Ciemnoszary (Tło)
+          Color col = is_selected ? Color(0, 150, 255) : (is_active ? active_col : Color(50, 50, 50));
+          
+          for (int i = 0; i < count; i++) 
+          {
+              int x1 = pts[i].x; int y1 = pts[i].y;
+              int x2 = pts[(i + 1) % count].x; int y2 = pts[(i + 1) % count].y;
+              
+              // Rysuj cienki obrys
+              it.line(x1, y1, x2, y2, col);
+              // Rysuj pogrubiony obrys i kółka w rogach tylko dla wybranego/aktywnego
+              if (is_active || is_selected) 
+              {
+                  it.line(x1+1, y1, x2+1, y2, col);
+                  it.filled_circle(x1, y1, 1, col);
+              }
+          }
+      };
+
+      // === 4. RYSOWANIE GEOMETRYCZNEJ MAPY (WARSTWY) ===
+      
+      // Warstwa 1: Tło ogrodu (Ciemnozielony prostokąt)
+      it.fill(Color(0, 40, 0));
+
+      // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
+      draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
+      draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
+
+      // Warstwa 3: Dom i Budynki (Złożone prostokąty)
+      // Dach (złożony z 3 prostokątów o różnych odcieniach brązu, bez trójkątów dla uproszczenia)
+      it.filled_rectangle(200, 150, 200, 120, Color(100, 50, 20));  // Główny prostokąt
+      it.filled_rectangle(220, 170, 160, 80, Color(120, 60, 24));   // Środkowy prostokąt
+      it.filled_rectangle(250, 190, 100, 40, Color(140, 70, 28));   // Górny prostokąt
+      
+      // Kominek i daszek kominka (Prostokąty)
+      it.filled_rectangle(200, 140, 30, 10, Color(130, 60, 25)); // Daszek kominka
+      it.filled_rectangle(210, 130, 10, 10, Color(50, 25, 10));   // Kominek (ciemniejszy)
+      
+      // Budynek boczny (Daszek garażu?)
+      it.filled_rectangle(150, 100, 50, 50, Color(100, 100, 100)); // Szary prostokąt
+
+      // Warstwa 4: Drzewa (Złożone za pomocą funkcji draw_circle_tree)
+      // Kolory drzew (indeksowane z palety tła)
+      Color trunk = Color(80, 40, 10);
+      Color leaves_dark = Color(0, 60, 0);
+      Color leaves_med = Color(0, 100, 0);
+      Color leaves_bright = Color(10, 180, 50);
+
+      // Grupa lewa (małe krzewy - pojedyncze okręgi)
+      it.filled_circle(20, 20, 15, leaves_med);
+      it.filled_circle(15, 60, 12, leaves_dark);
+      it.filled_circle(10, 100, 10, leaves_bright);
+      
+      // Górny rząd (grupa małych drzew)
+      it.filled_circle(100, 10, 10, leaves_med);
+      it.filled_circle(140, 10, 10, leaves_med);
+      it.filled_circle(180, 10, 10, leaves_med);
+      it.filled_circle(220, 10, 10, leaves_med);
+      it.filled_circle(260, 10, 10, leaves_med);
+      
+      // Centralne duże drzewo na górze
+      draw_circle_tree(320, 40, 25, trunk, Color(0, 200, 100)); // Jasnozielone, duże
+
+      // Warstwa 5: Pasek dolny z czasem i interfejsem
+      auto time_now = id(my_time).now();
+      
+      // Tło dla interfejsu (Ciemnoszary prostokąt)
+      it.filled_rectangle(0, 275, 480, 45, Color(103, 103, 103)); 
+      
+      it.strftime(10, 310, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
+      it.strftime(280, 310, id(my_font), Color(0, 255, 0), "%H:%M:%S", time_now);
+      
+      // Dodatkowa etykieta "SEKCJA" wewnątrz interfejsu
+      it.printf(150, 290, id(my_font), Color(255, 255, 255), "SEKCJA %01d", id(selected_square) + 1);
+
+
+switch:
+  - platform: gpio
+    pin: GPIO 9
+    id: backlight_switch
+    name: "Podswietlenie"
+    restore_mode: ALWAYS_ON
+
+  - platform: gpio
+    pin: GPIO15
+    id: relay_1
+    name: "Relay 1"
+    inverted: false 
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    pin: GPIO16
+    id: relay_2
+    name: "Relay 2"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    pin: GPIO17
+    id: relay_3
+    name: "Relay 3"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+  - platform: gpio
+    pin: GPIO18
+    id: relay_4
+    name: "Relay 4"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+  - platform: gpio
+    pin: GPIO43 # Using higher pins for S3 safety
+    id: relay_5
+    name: "Relay 5"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+  - platform: gpio
+    pin: GPIO44
+    id: relay_6
+    name: "Relay 6"
+    inverted: false
+    restore_mode: ALWAYS_OFF
+
+
+# 2. Define the Trigger Inputs (Binary Sensors)
+# These will trigger the relays when they receive a HIGH signal.
+binary_sensor:
+
+  - platform: gpio
+    pin:
+      number: GPIO1
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Encoder Button"
+    filters:
+      - delayed_on: 20ms
+    on_press:
+      then:
+        - lambda: |- 
+               id(is_locked) = !id(is_locked);
+               ESP_LOGD("custom", "Stan blokady: %s", id(is_locked) ? "ZABLOKOWANO" : "WOLNY");        
+               id(my_display).update(); // Dodaj to tutaj!
+
+  - platform: gpio
+    pin: 
+      number: GPIO10
+      mode: INPUT_PULLDOWN # Keeps pin at 0V until a 5V/3.3V signal arrives
+    name: "Trigger 1"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press:
+      then:
+        - switch.turn_on: relay_1
+    on_release:
+      then:
+        - switch.turn_off: relay_1
+
+  - platform: gpio
+    pin: 
+      number: GPIO11 
+      mode: INPUT_PULLDOWN
+    name: "Trigger 2"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_2
+    on_release:
+      then:
+        - switch.turn_off: relay_2    
+
+  - platform: gpio
+    pin: 
+      number: GPIO12 
+      mode: INPUT_PULLDOWN
+    name: "Trigger 3"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_3
+    on_release:
+      then:
+        - switch.turn_off: relay_3    
+
+  - platform: gpio
+    pin: 
+      number: GPIO13 
+      mode: INPUT_PULLDOWN
+    name: "Trigger 4"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_4
+    on_release:
+      then:
+        - switch.turn_off: relay_4    
+
+
+  - platform: gpio
+    pin: 
+      number: GPIO14
+      mode: INPUT_PULLDOWN
+    name: "Trigger 5"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_5
+    on_release:
+      then:
+        - switch.turn_off: relay_5    
+
+
+  - platform: gpio
+    pin: 
+      number: GPIO21
+      mode: INPUT_PULLDOWN
+    name: "Trigger 6"
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+    on_press: 
+     then:
+        - switch.turn_on: relay_6
+    on_release:
+      then:
+        - switch.turn_off: relay_6
