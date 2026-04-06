@@ -79,8 +79,8 @@ text_sensor:
       
 #I2C bus define
 i2c:
-  sda: GPIO8
-  scl: GPIO9
+  sda: GPIO41
+  scl: GPIO42
   scan: True
   id: bus_a
   frequency: 50kHz
