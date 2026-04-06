@@ -187,10 +187,11 @@ display:
       // These approximate the original image using standard 16-bit colors.
       Color color_background = Color(0, 40, 0);       // Very dark green
       Color color_pavement = Color(40, 40, 40);       // Dark charcoal/black
-      Color color_roof = Color(139, 69, 19);         // Saddle Brown
-      Color color_roof_shadow = Color(101, 67, 33);  // Dark Brown
+      Color color_roof = Color(103, 51, 1);         // Saddle Brown
+      Color color_roof_shadow = Color(46, 29, 8);   // Dark Brown
       Color color_shed = Color(128, 128, 128);       // Grey
-      Color color_dark = Color(5, 5, 5)               // Dark
+      Color color_grey = Color(103, 103, 103);       // Light Grey
+      Color color_dark = Color(5, 5, 5);               // Dark
       
       // Tree variations (light to dark)
       Color color_tree_bright = Color(127, 255, 0);  // Chartreuse
@@ -249,57 +250,61 @@ display:
       // Bottom Pavement Area (Dark grey)
       it.filled_rectangle(0, 240, 480, 80, color_pavement);
 
-      // Main Garden Shed (Upper center, grey)
-      it.filled_rectangle(150, 60, 80, 50, color_shed);
-      it.rectangle(150, 60, 80, 50, color_pavement); // Border
+      // Taras
+      it.filled_rectangle(144, 120, 56, 42, color_grey);
+      it.rectangle(144, 120, 56, 42, color_pavement); // Border
         
-      // Minor Shed (Right side, near pavement)
-      it.filled_rectangle(350, 200, 130, 60, color_pavement); // Small extension
-
       // --- 3. HOUSE ROOF ---
-      // Main Body (Rectangle)
-        it.filled_rectangle(140, 110, 260, 110, color_roof);
-        
-        // Roof Hip Details (Triangles and Lines)
-        // Left hip (Darker)
-        it.filled_triangle(140, 110, 200, 110, 200, 220, color_roof_shadow); 
-        // Right hip (Regular)
-        it.filled_triangle(400, 110, 340, 110, 340, 220, color_roof);
+      // Main Body ( Left Rectangle)
+        it.filled_rectangle(180, 150, 40, 120, color_roof);
+      // Main Body ( Left Rectangle)
+        it.filled_rectangle(220, 150, 40, 120, color_roof_shadow);
+      // Left Roof
+        it.filled_rectangle(140,163,50,44, color_roof);
+        it.rectangle(140,163,50,44, color_dark);
+        it.filled_rectangle(140,207,50,44, color_roof_shadow);
+        it.rectangle(140,207,50,44, color_dark);
+        it.filled_triangle(140, 163, 140, 250, 190, 206, color_roof);
+        it.triangle(140, 163, 140, 250, 190, 206, color_dark);
 
-        // Ridge lines
-        it.line(200, 110, 340, 110, color_dark); // Top ridge
-        it.line(140, 110, 200, 110, color_dark); // Left eave
-        it.line(140, 110, 200, 220, color_dark); // Left valley
-        it.line(340, 110, 400, 110, color_dark); // Right eave
-        it.line(400, 110, 340, 220, color_dark); // Right valley
-        it.line(200, 220, 340, 220, color_dark); // Bottom ridge
-        it.line(200, 110, 200, 220, color_dark); // Internal structural
-        it.line(340, 110, 340, 220, color_dark); // Internal structural
+      // Right Roof
+        it.filled_rectangle(250,163,50,44, color_roof);
+        it.rectangle(250,163,50,44, color_dark);
+        it.filled_rectangle(250,207,50,44, color_roof_shadow);
+        it.rectangle(250,207,50,44, color_dark);
+        it.filled_triangle(300, 163, 250, 207, 300, 250, color_roof);
+        it.triangle(300, 163, 250, 207, 300, 250, color_dark);
+     
+      // Garage
+        it.filled_rectangle(300,190,110,30, color_roof);
+        it.rectangle(300,190,110,30, color_dark);
+        it.filled_rectangle(300,220,110,30, color_roof_shadow);
+        it.rectangle(300,220,110,30, color_dark);
+        it.filled_triangle(300, 190, 300, 250, 322, 220, color_roof);
+        it.triangle(300, 190, 300, 250, 322, 220, color_dark);
+        it.filled_triangle(410, 190, 410, 250, 388, 220, color_roof);
+        it.triangle(410, 190, 410, 250, 388, 220, color_dark);
 
-        // Cross-hip section (middle)
-        it.line(200, 110, 270, 165, color_dark);
-        it.line(340, 110, 270, 165, color_dark);
-      
       // --- 4. TREES ---
       // These are drawn after the house to sit in front (layering).
       // We use simple border colors (BLACK) and solid fills.
 
       // Bottom-Left Clusters (Foreground)
 
-        draw_clumpy_tree(20, 220, 25, color_tree_normal, color_dark, true);
-        draw_clumpy_tree(60, 210, 18, color_tree_normal, color_dark, true);
-        draw_clumpy_tree(105, 230, 12, color_tree_mid,    color_dark, true);
+        draw_clumpy_tree(20, 220, 25, color_tree_normal, color_tree_dark, true);
+        draw_clumpy_tree(60, 210, 18, color_tree_normal, color_tree_dark, true);
+        draw_clumpy_tree(105, 230, 12, color_tree_mid,    color_tree_dark, true);
         
         // Near House
-        draw_clumpy_tree(130, 170, 15, color_tree_mid,    color_dark, true);
-        draw_clumpy_tree(135, 140, 15, color_tree_mid,    color_dark, true);
+        draw_clumpy_tree(130, 170, 15, color_tree_mid,    color_tree_dark, true);
+        draw_clumpy_tree(135, 140, 15, color_tree_mid,    color_tree_dark, true);
 
         // Far Left Column
-        draw_clumpy_tree(20, 160, 22, color_tree_dark,   color_dark, true);
-        draw_clumpy_tree(25, 120, 20, color_tree_bright, color_dark, true);
-        draw_clumpy_tree(18, 80, 18, color_tree_mid,    color_dark, true);
-        draw_clumpy_tree(25, 45, 16, color_tree_mid,    color_dark, true);
-        draw_clumpy_tree(22, 15, 15, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(20, 160, 22, color_tree_dark,   color_tree_dark, true);
+        draw_clumpy_tree(25, 120, 20, color_tree_bright, color_tree_dark, true);
+        draw_clumpy_tree(18, 80, 18, color_tree_normal,    color_tree_dark, true);
+        draw_clumpy_tree(25, 45, 16, color_tree_mid,    color_tree_dark, true);
+        draw_clumpy_tree(22, 15, 15, color_tree_dark,   color_tree_dark, true);
 
         // Top Row (Left to Right)
         draw_clumpy_tree(60, 15, 18, color_tree_dark,   color_dark, true);
