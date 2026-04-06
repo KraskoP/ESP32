@@ -191,21 +191,40 @@ display:
       // Sekcja 2 (np. Rabaty)
       Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
 
-      // === 2. FUNKCJA RYSOWANIA GEOMETRYCZNYCH DRZEW ===
-      // 'Tree' to złożony kształt z wielu okręgów. Przekazujemy środek trunkera.
-      auto draw_circle_tree = [&](int trunkX, int trunkY, int baseR, Color trunkCol, Color leaveCol) 
+      // --- COLOR DEFINITIONS ---
+      // These approximate the original image using standard 16-bit colors.
+      Color color_background = Color(0, 40, 0);       // Very dark green
+      Color color_pavement = Color(40, 40, 40);       // Dark charcoal/black
+      Color color_roof = Color(139, 69, 19);         // Saddle Brown
+      Color color_roof_shadow = Color(101, 67, 33);  // Dark Brown
+      Color color_shed = Color(128, 128, 128);       // Grey
+      Color color_dark = Color(5, 5, 5)               // Dark
+      
+      // Tree variations (light to dark)
+      Color color_tree_bright = Color(127, 255, 0);  // Chartreuse
+      Color color_tree_mid = Color(60, 179, 113);     // Medium Sea Green
+      Color color_tree_normal = Color(0, 128, 0);     // Green
+      Color color_tree_dark = Color(0, 100, 0);       // Dark Green
+
+      // --- HELPER FUNCTIONS ---
+      // Draws a 'clumpy' tree composed of three overlapping circles.
+      // x, y: center of the main cluster. r: base radius.
+      auto draw_clumpy_tree = [&](int x, int y, int r, Color color_fill, Color color_border, bool filled) 
       {
-          // Trzon (Pień) - prostokąt
-          it.filled_rectangle(trunkX - (baseR/4), trunkY, baseR/2, baseR*1.5, trunkCol);
-          
-          // Korona (Liście) - złożona z 6 okręgów
-          it.filled_circle(trunkX, trunkY - baseR, baseR * 1.2, leaveCol);          // Centralny, duży
-          it.filled_circle(trunkX - baseR, trunkY - baseR*0.8, baseR, leaveCol); // Lewy
-          it.filled_circle(trunkX + baseR, trunkY - baseR*0.8, baseR, leaveCol); // Prawy
-          it.filled_circle(trunkX - baseR*0.7, trunkY - baseR*1.6, baseR*0.8, leaveCol); // Lewy górny
-          it.filled_circle(trunkX + baseR*0.7, trunkY - baseR*1.6, baseR*0.8, leaveCol); // Prawy górny
-          it.filled_circle(trunkX, trunkY - baseR*2.1, baseR*0.7, leaveCol); // Centralny górny
+        if (filled) 
+        {
+          // Inner core circles for full fill
+          it.filled_circle(x, y, r, color_fill);
+          it.filled_circle(x - r/1.8, y + r/3, r/1.5, color_fill);
+          it.filled_circle(x + r/1.8, y + r/3, r/1.5, color_fill);
+        }
+        // Border lines (draw last to overlap previous trees correctly)
+        it.circle(x, y, r, color_border);
+        it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
+        it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
       };
+
+
 
       // === 3. FUNKCJA RYSOWANIA INTERAKTYWNYCH SEKCJI (POLIGONY) ===
       auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected, Color active_col) 
@@ -232,46 +251,86 @@ display:
       // === 4. RYSOWANIE GEOMETRYCZNEJ MAPY (WARSTWY) ===
       
       // Warstwa 1: Tło ogrodu (Ciemnozielony prostokąt)
-      it.fill(Color(0, 40, 0));
+      it.fill(color_background);
+
+      // --- 2. PAVEMENT & SHEDS ---
+      // Bottom Pavement Area (Dark grey)
+      it.filled_rectangle(0, 240, 480, 80, color_pavement);
+
+      // Main Garden Shed (Upper center, grey)
+      it.filled_rectangle(150, 60, 80, 50, color_shed);
+      it.rectangle(150, 60, 80, 50, color_pavement); // Border
+        
+      // Minor Shed (Right side, near pavement)
+      it.filled_rectangle(350, 200, 130, 60, color_pavement); // Small extension
+
+      // --- 3. HOUSE ROOF ---
+      // Main Body (Rectangle)
+        it.filled_rectangle(140, 110, 260, 110, color_roof);
+        
+        // Roof Hip Details (Triangles and Lines)
+        // Left hip (Darker)
+        it.filled_triangle(140, 110, 200, 110, 200, 220, color_roof_shadow); 
+        // Right hip (Regular)
+        it.filled_triangle(400, 110, 340, 110, 340, 220, color_roof);
+
+        // Ridge lines
+        it.line(200, 110, 340, 110, color_dark); // Top ridge
+        it.line(140, 110, 200, 110, color_dark); // Left eave
+        it.line(140, 110, 200, 220, color_dark); // Left valley
+        it.line(340, 110, 400, 110, color_dark); // Right eave
+        it.line(400, 110, 340, 220, color_dark); // Right valley
+        it.line(200, 220, 340, 220, color_dark); // Bottom ridge
+        it.line(200, 110, 200, 220, color_dark); // Internal structural
+        it.line(340, 110, 340, 220, color_dark); // Internal structural
+
+        // Cross-hip section (middle)
+        it.line(200, 110, 270, 165, color_dark);
+        it.line(340, 110, 270, 165, color_dark);
+      
+      // --- 4. TREES ---
+      // These are drawn after the house to sit in front (layering).
+      // We use simple border colors (BLACK) and solid fills.
+
+      // Bottom-Left Clusters (Foreground)
+
+        draw_clumpy_tree(20, 220, 25, color_tree_normal, color_dark, true);
+        draw_clumpy_tree(60, 210, 18, color_tree_normal, color_dark, true);
+        draw_clumpy_tree(105, 230, 12, color_tree_mid,    color_dark, true);
+        
+        // Near House
+        draw_clumpy_tree(130, 170, 15, color_tree_mid,    color_dark, true);
+        draw_clumpy_tree(135, 140, 15, color_tree_mid,    color_dark, true);
+
+        // Far Left Column
+        draw_clumpy_tree(20, 160, 22, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(25, 120, 20, color_tree_bright, color_dark, true);
+        draw_clumpy_tree(18, 80, 18, color_tree_mid,    color_dark, true);
+        draw_clumpy_tree(25, 45, 16, color_tree_mid,    color_dark, true);
+        draw_clumpy_tree(22, 15, 15, color_tree_dark,   color_dark, true);
+
+        // Top Row (Left to Right)
+        draw_clumpy_tree(60, 15, 18, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(110, 18, 18, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(150, 15, 15, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(190, 15, 15, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(230, 15, 15, color_tree_dark,   color_dark, true);
+
+        // Large Accent Trees
+        draw_clumpy_tree(95, 55, 30, color_tree_normal, color_dark, true); // Mid-Left Big
+        draw_clumpy_tree(320, 60, 45, color_tree_mid,    color_dark, true); // Upper Right Big
+
+        // Far Right Column
+        draw_clumpy_tree(380, 15, 15, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(420, 15, 15, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(455, 60, 30, color_tree_normal, color_dark, true); // Mid-Right Big
+        draw_clumpy_tree(430, 105, 20, color_tree_dark,   color_dark, true);
+        draw_clumpy_tree(430, 150, 22, color_tree_bright, color_dark, true);
+
 
       // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
       draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
       draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
-
-      // Warstwa 3: Dom i Budynki (Złożone prostokąty)
-      // Dach (złożony z 3 prostokątów o różnych odcieniach brązu, bez trójkątów dla uproszczenia)
-      it.filled_rectangle(200, 150, 200, 120, Color(100, 50, 20));  // Główny prostokąt
-      it.filled_rectangle(220, 170, 160, 80, Color(120, 60, 24));   // Środkowy prostokąt
-      it.filled_rectangle(250, 190, 100, 40, Color(140, 70, 28));   // Górny prostokąt
-      
-      // Kominek i daszek kominka (Prostokąty)
-      it.filled_rectangle(200, 140, 30, 10, Color(130, 60, 25)); // Daszek kominka
-      it.filled_rectangle(210, 130, 10, 10, Color(50, 25, 10));   // Kominek (ciemniejszy)
-      
-      // Budynek boczny (Daszek garażu?)
-      it.filled_rectangle(150, 100, 50, 50, Color(100, 100, 100)); // Szary prostokąt
-
-      // Warstwa 4: Drzewa (Złożone za pomocą funkcji draw_circle_tree)
-      // Kolory drzew (indeksowane z palety tła)
-      Color trunk = Color(80, 40, 10);
-      Color leaves_dark = Color(0, 60, 0);
-      Color leaves_med = Color(0, 100, 0);
-      Color leaves_bright = Color(10, 180, 50);
-
-      // Grupa lewa (małe krzewy - pojedyncze okręgi)
-      it.filled_circle(20, 20, 15, leaves_med);
-      it.filled_circle(15, 60, 12, leaves_dark);
-      it.filled_circle(10, 100, 10, leaves_bright);
-      
-      // Górny rząd (grupa małych drzew)
-      it.filled_circle(100, 10, 10, leaves_med);
-      it.filled_circle(140, 10, 10, leaves_med);
-      it.filled_circle(180, 10, 10, leaves_med);
-      it.filled_circle(220, 10, 10, leaves_med);
-      it.filled_circle(260, 10, 10, leaves_med);
-      
-      // Centralne duże drzewo na górze
-      draw_circle_tree(320, 40, 25, trunk, Color(0, 200, 100)); // Jasnozielone, duże
 
       // Warstwa 5: Pasek dolny z czasem i interfejsem
       auto time_now = id(my_time).now();
