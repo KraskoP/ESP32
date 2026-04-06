@@ -91,7 +91,7 @@ sensor:
     pin_a: GPIO19
     pin_b: GPIO20
     min_value: 0
-    max_value: 3
+    max_value: 5
     resolution: 1
 
     on_value:
@@ -179,17 +179,27 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
-    update_interval: 30s
+    update_interval: 1s
 
     lambda: |-
 
       struct Point { int x; int y; };
 
       // === 1. DEFINICJE PUNKTÓW DLA WIELOKĄTÓW (ZARYSY SEKCJI) ===
-      // Sekcja 1 (np. Trawnik Front)
+      // Sekcja 1 (Trawnik Front Droga)
       static Point s1[] = {{35,270}, {175,270}, {175,250}, {135,250}, {115, 230}, {115, 165}, {35, 165}, {35,220}, {70,220}, {70,250}, {35, 250}, {35, 270}};
-      // Sekcja 2 (np. Rabaty)
+      // Sekcja 2 (Trawnik Front Tył)
       static Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
+      // Sekcja 3 (Trawnik Taras)
+      static Point s3[] = {{135,30}, {270,30}, {270,70}, {300, 85}, {300, 150}, {260,140}, {200, 140}, {200, 115}, {135.,115}, {135,30}};
+      // Sekcja 4 (Trawnik przed domkiem SPA)
+      static Point s4[] = {{305,85}, {275,70}, {335,90}, {367,60}, {367,30}, {417,30}, {417,150}, {305, 150}, {305,85}};
+      // Sekcja 5 (Trawnik za domem)
+      static Point s5[] = {{417, 155}, {435, 172}, {455,180}, {475, 180}, {475, 245}, {440,245}, {440,200}, {417,200}, {417,185}, {400, 185}, {400, 155}, {417,155} };
+      // Sekcja 6 (Linia kroplująca)
+      static Point s6[] = {{5, 270}, {5,5}, {475, 5}, {475,10}, {10, 10}, {10,270}, {5,270} };
+
+
 
       // --- COLOR DEFINITIONS ---
       // These approximate the original image using standard 16-bit colors.
@@ -220,9 +230,9 @@ display:
           it.filled_circle(x + r/1.8, y + r/3, r/1.5, color_fill);
         }
         // Border lines (draw last to overlap previous trees correctly)
-        //it.circle(x, y, r, color_border);
-        //it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
-        //it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
+        it.circle(x, y, r, color_border);
+        it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
+        it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
       };
 
       // Draw a background as a static FUNCTIONS
@@ -300,7 +310,10 @@ display:
 
 
         // Large Accent Trees
-        draw_clumpy_tree(320, 40, 40, color_tree_mid,    color_dark, true); // Upper Right Big
+        draw_clumpy_tree(320, 40, 40, color_tree_dark,    color_dark, true); // Upper Right Big
+
+        //Next to Office
+        draw_clumpy_tree(269, 156, 15, color_tree_normal,    color_dark, true);        
 
         // Far Right Column
         draw_clumpy_tree(380, 15, 15, color_tree_dark,      color_tree_dark, true);
@@ -352,7 +365,10 @@ display:
       // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
       draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
       draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
-
+      draw_zone(S3, 10, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
+      draw_zone(S4, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
+      draw_zone(S5, 12, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
+      draw_zone(S6, 7, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100));)
 
 
       auto time_now = id(my_time).now();
