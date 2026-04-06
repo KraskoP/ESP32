@@ -13,6 +13,10 @@ globals:
 
 esphome:
   name: ${devicename}
+  platformio_options:
+    board_build.arduino.memory_type: qio_opi
+    build_flags: 
+      - "-DBOARD_HAS_PSRAM"  
   on_boot:
     priority: -10
     then:
@@ -21,12 +25,12 @@ esphome:
 esp32:
   board: esp32-s3-devkitc-1
   framework:
-    type: esp-idf
+#    type: esp-idf
+    type: arduino
+    version: latest
 
- extra_build_flags: 
-    - -DBOARD_HAS_PSRAM
-    - -mfix-esp32-s3-psram-cache-issue
 
+psram:
 
 # Enable logging
 logger:
@@ -174,17 +178,17 @@ display:
     reset_pin: GPIO 8
     rotation: 90
     data_rate: 40MHz
-    update_interval: 800ms
+    update_interval: 30s
 
     lambda: |-
 
-      static struct Point { int x; int y; };
+      struct Point { int x; int y; };
 
       // === 1. DEFINICJE PUNKTÓW DLA WIELOKĄTÓW (ZARYSY SEKCJI) ===
       // Sekcja 1 (np. Trawnik Front)
-      Point s1[] = {{35,270}, {175,270}, {175,250}, {135,250}, {115, 230}, {115, 165}, {35, 165}, {35,220}, {70,220}, {70,250}, {35, 250}, {35, 270}};
+      static Point s1[] = {{35,270}, {175,270}, {175,250}, {135,250}, {115, 230}, {115, 165}, {35, 165}, {35,220}, {70,220}, {70,250}, {35, 250}, {35, 270}};
       // Sekcja 2 (np. Rabaty)
-      Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
+      static Point s2[] = {{35,160}, {130,160}, {130,30}, {30,30}, {30,75}, {55,75}, {55,120}, {35,120}, {35,160}};
 
       // --- COLOR DEFINITIONS ---
       // These approximate the original image using standard 16-bit colors.
@@ -205,7 +209,7 @@ display:
       // --- HELPER FUNCTIONS ---
       // Draws a 'clumpy' tree composed of three overlapping circles.
       // x, y: center of the main cluster. r: base radius.
-      auto draw_clumpy_tree = [&](int x, int y, int r, Color color_fill, Color color_border, bool filled) 
+      static auto draw_clumpy_tree = [&](int x, int y, int r, Color color_fill, Color color_border, bool filled) 
       {
         if (filled) 
         {
@@ -220,30 +224,9 @@ display:
         //it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
       };
 
-
-
-      // === 3. FUNKCJA RYSOWANIA INTERAKTYWNYCH SEKCJI (POLIGONY) ===
-      auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected, Color active_col) 
+      // Draw a background as a static FUNCTIONS
+      static auto draw_background()
       {
-          // Kolory: Jasnoniebieski (Focus), Zielony (Podlewanie), Ciemnoszary (Tło)
-          Color col = is_selected ? Color(0, 150, 255) : (is_active ? active_col : Color(50, 50, 50));
-          
-          for (int i = 0; i < count; i++) 
-          {
-              int x1 = pts[i].x; int y1 = pts[i].y;
-              int x2 = pts[(i + 1) % count].x; int y2 = pts[(i + 1) % count].y;
-              
-              // Rysuj cienki obrys
-              it.line(x1, y1, x2, y2, col);
-              // Rysuj pogrubiony obrys i kółka w rogach tylko dla wybranego/aktywnego
-              if (is_active || is_selected) 
-              {
-                  it.line(x1+1, y1, x2+1, y2, col);
-                  it.filled_circle(x1, y1, 1, col);
-              }
-          }
-      };
-
       // === 4. RYSOWANIE GEOMETRYCZNEJ MAPY (WARSTWY) ===
       
       // Warstwa 1: Tło ogrodu (Ciemnozielony prostokąt)
@@ -290,13 +273,13 @@ display:
 
       // Bottom-Left Clusters (Foreground)
 
-        draw_clumpy_tree(25, 246, 25, color_tree_normal, color_tree_dark, true);
+        draw_clumpy_tree(25, 250, 25, color_tree_normal, color_tree_dark, true);
         draw_clumpy_tree(20, 210, 18, color_tree_normal, color_tree_dark, true);
-        draw_clumpy_tree(105, 230, 12, color_tree_mid,    color_tree_dark, true);
+        draw_clumpy_tree(55, 230, 12, color_tree_mid,    color_tree_dark, true);
         
         // Near House
-        draw_clumpy_tree(130, 200, 15, color_tree_normal,    color_tree_dark, true);
-        draw_clumpy_tree(135, 200, 15, color_tree_normal,    color_tree_dark, true);
+        draw_clumpy_tree(130, 200, 12, color_tree_dark,    color_tree_dark, true);
+        draw_clumpy_tree(130, 220, 12, color_tree_dark,    color_tree_dark, true);
 
         // Far Left Column
         draw_clumpy_tree(22, 160, 22, color_tree_dark,   color_tree_dark, true);
@@ -316,36 +299,62 @@ display:
 
 
         // Large Accent Trees
-        draw_clumpy_tree(320, 40, 25, color_tree_mid,    color_dark, true); // Upper Right Big
+        draw_clumpy_tree(320, 40, 40, color_tree_mid,    color_dark, true); // Upper Right Big
 
         // Far Right Column
-        draw_clumpy_tree(380, 15, 15, color_tree_dark,   color_tree_dark, true);
-        draw_clumpy_tree(420, 15, 15, color_tree_dark,   color_tree_dark, true);
-        draw_clumpy_tree(455, 60, 30, color_tree_normal, color_tree_normal, true); // Mid-Right Big
-        draw_clumpy_tree(450, 105, 25, color_tree_dark,  color_dark, true);
-        draw_clumpy_tree(430, 160, 25, color_tree_mid,   color_tree_mid, true);
+        draw_clumpy_tree(380, 15, 15, color_tree_dark,      color_tree_dark, true);
+        draw_clumpy_tree(420, 15, 15, color_tree_dark,      color_tree_dark, true);
+        draw_clumpy_tree(455, 60, 30, color_tree_normal,    color_tree_normal, true); // Mid-Right Big
+        draw_clumpy_tree(450, 105, 25, color_tree_dark,     color_dark, true);
+        draw_clumpy_tree(450, 150, 25, color_tree_normal,   color_tree_mid, true);            
+      
+        // Sauna & Jacuzzi
+        it.filled_rectangle(340, 152, 57, 37, color_dark);
+        it.filled_circle(320, 170, 14, color_grey);
 
+        // Shed
+        it.filled_rectangle(411, 200, 25, 40, color_dark);
+        
+        // Tło dla interfejsu (Ciemnoszary prostokąt)
+        it.filled_rectangle(0, 275, 480, 45, color_grey);
+
+        // Path to Garage
+        it.filled_rectangle(350, 251, 130, 25, color_grey);
+      
+      }
+
+      // === 3. FUNKCJA RYSOWANIA INTERAKTYWNYCH SEKCJI (POLIGONY) ===
+      static auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected, Color active_col) 
+      {
+          // Kolory: Jasnoniebieski (Focus), Zielony (Podlewanie), Ciemnoszary (Tło)
+          Color col = is_selected ? Color(0, 150, 255) : (is_active ? active_col : Color(50, 50, 50));
+          
+          for (int i = 0; i < count; i++) 
+          {
+              int x1 = pts[i].x; int y1 = pts[i].y;
+              int x2 = pts[(i + 1) % count].x; int y2 = pts[(i + 1) % count].y;
+              
+              // Rysuj cienki obrys
+              it.line(x1, y1, x2, y2, col);
+              // Rysuj pogrubiony obrys i kółka w rogach tylko dla wybranego/aktywnego
+              if (is_active || is_selected) 
+              {
+                  it.line(x1+1, y1, x2+1, y2, col);
+                  it.filled_circle(x1, y1, 1, col);
+              }
+          }
+      };
+
+
+      draw_background();
 
       // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
       draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
       draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
 
-      // Sauna & Jacuzzi
-      it.filled_rectangle(340, 152, 57, 37, color_dark);
-      it.filled_circle(320, 170, 18, color_grey)
 
-      // Shed
-      it.filled_rectangle(411, 200, 25, 40, color_dark);
 
-      // Warstwa 5: Pasek dolny z czasem i interfejsem
       auto time_now = id(my_time).now();
-      
-      // Tło dla interfejsu (Ciemnoszary prostokąt)
-      it.filled_rectangle(0, 275, 480, 45, color_grey);
-
-      // Path to Garage
-      it.filled_rectangle(350, 251, 130, 25, color_grey);
-
       
       it.strftime(10, 290, id(my_font), Color(255, 255, 255), "%d.%m.%Y", time_now);
       it.strftime(280, 290, id(my_font), Color(0, 255, 0), "%H:%M:%S", time_now);
