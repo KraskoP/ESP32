@@ -31,6 +31,7 @@ esp32:
 
 
 psram:
+  mode: octal;
 
 # Enable logging
 logger:
@@ -78,8 +79,8 @@ text_sensor:
       
 #I2C bus define
 i2c:
-  sda: GPIO41
-  scl: GPIO42
+  sda: GPIO8
+  scl: GPIO9
   scan: True
   id: bus_a
   frequency: 50kHz
@@ -225,7 +226,7 @@ display:
       };
 
       // Draw a background as a static FUNCTIONS
-      static auto draw_background()
+      static auto draw_background = [&]()
       {
       // === 4. RYSOWANIE GEOMETRYCZNEJ MAPY (WARSTWY) ===
       
@@ -321,7 +322,7 @@ display:
         // Path to Garage
         it.filled_rectangle(350, 251, 130, 25, color_grey);
       
-      }
+      };
 
       // === 3. FUNKCJA RYSOWANIA INTERAKTYWNYCH SEKCJI (POLIGONY) ===
       static auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected, Color active_col) 
