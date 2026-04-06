@@ -5,7 +5,7 @@ globals:
   - id: selected_square
     type: int
     restore_value: no
-    initial_value: "0" # 0=Czerwony, 1=Zielony, 2=Niebieski, 3=Żółty
+    initial_value: "0"
   - id: is_locked
     type: bool
     restore_value: no
@@ -210,9 +210,13 @@ display:
       static Color color_shed = Color(128, 128, 128);        // Grey
       static Color color_grey = Color(103, 103, 103);        // Light Grey
       static Color color_dark = Color(5, 5, 5);              // Dark
+      //static Color zone_active = Color(147,112, 219);        // Medium Purple
+      static Color zone_active = Color(255, 0, 255);        // Magenta
+      static Color zone_selected = Color (255, 140, 0);      // Dark orange 
+      static Color zone_border = Color(222,184, 135);        // Burly wood
       
       // Tree variations (light to dark)
-      static Color color_tree_bright = Color(127, 255, 0);   // Chartreuse
+      static Color color_tree_bright = Color(154, 205, 50);   // Lime Green
       static Color color_tree_mid = Color(60, 179, 113);     // Medium Sea Green
       static Color color_tree_normal = Color(0, 128, 0);     // Green
       static Color color_tree_dark = Color(0, 100, 0);       // Dark Green
@@ -220,19 +224,19 @@ display:
       // --- HELPER FUNCTIONS ---
       // Draws a 'clumpy' tree composed of three overlapping circles.
       // x, y: center of the main cluster. r: base radius.
-      static auto draw_clumpy_tree = [&](int x, int y, int r, Color color_fill, Color color_border, bool filled) 
+      static auto draw_clumpy_tree = [&](int x, int y, int r, Color color_fill, Color color_border, bool noborder) 
       {
-        if (filled) 
-        {
           // Inner core circles for full fill
           it.filled_circle(x, y, r, color_fill);
           it.filled_circle(x - r/1.8, y + r/3, r/1.5, color_fill);
           it.filled_circle(x + r/1.8, y + r/3, r/1.5, color_fill);
-        }
-        // Border lines (draw last to overlap previous trees correctly)
-        it.circle(x, y, r, color_border);
-        it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
-        it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
+        if (!noborder)
+        {
+         // Border lines (draw last to overlap previous trees correctly)
+         it.circle(x, y, r, color_border);
+         it.circle(x - r/1.8, y + r/3, r/1.5, color_border);
+         it.circle(x + r/1.8, y + r/3, r/1.5, color_border);
+        } 
       };
 
       // Draw a background as a static FUNCTIONS
@@ -338,11 +342,16 @@ display:
       };
 
       // === 3. FUNKCJA RYSOWANIA INTERAKTYWNYCH SEKCJI (POLIGONY) ===
-      static auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected, Color active_col) 
+      static auto draw_zone = [&](Point pts[], int count, bool is_active, bool is_selected) 
       {
-          // Kolory: Jasnoniebieski (Focus), Zielony (Podlewanie), Ciemnoszary (Tło)
-          Color col = is_selected ? Color(0, 150, 255) : (is_active ? active_col : Color(50, 50, 50));
+          // Colors: 
+          // Is_active - zone_active (Podlewanie
+          // Is selected - zone_selected (Focus)
+          // other case is just a border zone_border 
           
+          // Color col = is_selected ? zone_selected : (is_active ? zone_active : zone_border);
+          Color col = is_active ? zone_active : (is_selected ? zone_selected : zone_border);
+
           for (int i = 0; i < count; i++) 
           {
               int x1 = pts[i].x; int y1 = pts[i].y;
@@ -354,7 +363,10 @@ display:
               if (is_active || is_selected) 
               {
                   it.line(x1+1, y1, x2+1, y2, col);
-                  it.filled_circle(x1, y1, 1, col);
+                  it.line(x1+2, y1, x2+2, y2, col);
+                  it.line(x1, y1+1, x2, y2+1, col);
+                  it.line(x1, y1+2, x2, y2+2, col);
+                  it.filled_circle(x1, y1, 2, col);
               }
           }
       };
@@ -363,12 +375,12 @@ display:
       draw_background();
 
       // Warstwa 2: Interaktywne Sekcje (Zmieniają kolor po wybraniu enkoderem)
-      draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0), Color(0, 255, 0)); // Trawnik - Zielony
-      draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1), Color(180, 255, 100)); // Rabaty - Jasnozielony
-      draw_zone(S3, 10, id(relay_3).state, (id(selected_square) == 1), Color(180, 255, 100));
-      draw_zone(S4, 9, id(relay_4).state, (id(selected_square) == 1), Color(180, 255, 100));
-      draw_zone(S5, 12, id(relay_5).state, (id(selected_square) == 1), Color(180, 255, 100));
-      draw_zone(S6, 7, id(relay_6).state, (id(selected_square) == 1), Color(180, 255, 100));
+      draw_zone(s1, 12, id(relay_1).state, (id(selected_square) == 0));
+      draw_zone(s2, 9, id(relay_2).state, (id(selected_square) == 1)); 
+      draw_zone(s3, 10, id(relay_3).state, (id(selected_square) == 2));
+      draw_zone(s4, 9, id(relay_4).state, (id(selected_square) == 3));
+      draw_zone(s5, 12, id(relay_5).state, (id(selected_square) == 4));
+      draw_zone(s6, 7, id(relay_6).state, (id(selected_square) == 5));
 
 
       auto time_now = id(my_time).now();
@@ -390,46 +402,86 @@ switch:
   - platform: gpio
     pin: GPIO15
     id: relay_1
-    name: "Relay 1"
+    name: "Sekcja 1"
     inverted: false 
     restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - switch.turn_off: relay_2
+        - switch.turn_off: relay_3
+        - switch.turn_off: relay_4
+        - switch.turn_off: relay_5
+        - switch.turn_off: relay_6    
 
   - platform: gpio
     pin: GPIO16
     id: relay_2
-    name: "Relay 2"
+    name: "Sekcja 2"
     inverted: false
     restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - switch.turn_off: relay_1
+        - switch.turn_off: relay_3
+        - switch.turn_off: relay_4
+        - switch.turn_off: relay_5
+        - switch.turn_off: relay_6     
 
   - platform: gpio
     pin: GPIO17
     id: relay_3
-    name: "Relay 3"
+    name: "Sekcja 3"
     inverted: false
     restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - switch.turn_off: relay_1
+        - switch.turn_off: relay_2
+        - switch.turn_off: relay_4
+        - switch.turn_off: relay_5
+        - switch.turn_off: relay_6 
 
   - platform: gpio
     pin: GPIO18
     id: relay_4
-    name: "Relay 4"
+    name: "Sekcja 4"
     inverted: false
     restore_mode: ALWAYS_OFF
-
+    on_turn_on:
+      then:
+        - switch.turn_off: relay_1
+        - switch.turn_off: relay_2
+        - switch.turn_off: relay_3
+        - switch.turn_off: relay_5
+        - switch.turn_off: relay_6 
 
   - platform: gpio
     pin: GPIO43 # Using higher pins for S3 safety
     id: relay_5
-    name: "Relay 5"
+    name: "Sekcja 5"
     inverted: false
     restore_mode: ALWAYS_OFF
-
+    on_turn_on:
+      then:
+        - switch.turn_off: relay_1
+        - switch.turn_off: relay_2
+        - switch.turn_off: relay_3
+        - switch.turn_off: relay_4
+        - switch.turn_off: relay_6 
 
   - platform: gpio
     pin: GPIO44
     id: relay_6
-    name: "Relay 6"
+    name: "Sekcja 6"
     inverted: false
     restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - switch.turn_off: relay_1
+        - switch.turn_off: relay_2
+        - switch.turn_off: relay_3
+        - switch.turn_off: relay_4
+        - switch.turn_off: relay_5     
 
 
 # 2. Define the Trigger Inputs (Binary Sensors)
@@ -447,9 +499,25 @@ binary_sensor:
     on_press:
       then:
         - lambda: |- 
-               id(is_locked) = !id(is_locked);
-               ESP_LOGD("custom", "Stan blokady: %s", id(is_locked) ? "ZABLOKOWANO" : "WOLNY");        
-               id(my_display).update(); // Dodaj to tutaj!
+            // Pobieramy aktualnie wybrany kwadrat (0-5)
+            int current_selection = id(selected_square);
+            
+            // Logika przełączania przekaźnika na podstawie wyboru
+            switch (current_selection) {
+              case 0: id(relay_1).toggle(); break;
+              case 1: id(relay_2).toggle(); break;
+              case 2: id(relay_3).toggle(); break;
+              case 3: id(relay_4).toggle(); break;
+              case 4: id(relay_5).toggle(); break;
+              case 5: id(relay_6).toggle(); break;
+            };
+            
+            // Logowanie informacji do konsoli
+            ESP_LOGD("custom", "Przełączono przekaźnik dla sekcji: %d", current_selection + 1);
+            
+            // Wymuś natychmiastowe odświeżenie ekranu, aby zobaczyć zmianę koloru poligonu
+            id(my_display).update();
+
 
   - platform: gpio
     pin: 
